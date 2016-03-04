@@ -23,7 +23,7 @@ int main() {
     int fd = open("/dev/ttyUSB10", O_RDWR);
     int bytes_read;    
     if (fd == -1) {
-        printf("We messed up");
+        printf("We messed up\n");
         return -1;
     }
     struct termios options; // struct to hold options
