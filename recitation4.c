@@ -20,12 +20,15 @@ void clear_buffer() {
 
 
 int main() {
-    int fd = open("/dev/ttyUSB10", O_RDWR);
+    printf("Try to open the file\n");
+    int fd = open("/dev/cu.usbmodem1421", O_RDWR);
+    printf("Opened file\n");
     int bytes_read;    
     if (fd == -1) {
         printf("We messed up");
         return -1;
     }
+    printf("File opened\n");
     struct termios options; // struct to hold options
     tcgetattr(fd, &options);  // associate with this fd
     cfsetispeed(&options, 9600); // set input baud rate
