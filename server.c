@@ -1,10 +1,3 @@
-/* 
-This code primarily comes from 
-http://www.prasannatech.net/2008/07/socket-programming-tutorial.html
-and
-http://www.binarii.com/files/papers/c_sockets.txt
- */
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -14,6 +7,20 @@ http://www.binarii.com/files/papers/c_sockets.txt
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <termios.h>
+#include <unistd.h>
+
+char buffer[1250];
+
+
+void clear_buffer() {
+    int i;
+    for (i = 0; i < 1250; i++) {
+        buffer[i] = '\0';
+    }    
+}
 
 int start_server(int PORT_NUMBER)
 {
@@ -72,7 +79,24 @@ int start_server(int PORT_NUMBER)
       printf("Here comes the message:\n");
       printf("%s\n", request);
 
-
+      int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
+      int bytes_read;    
+      if (fdusb == -1) {
+          printf("We messed up\n");
+          return -1;
+      }
+      struct termios options; // struct to hold options
+      tcgetattr(fdusb, &options);  // associate with this fd
+      cfsetispeed(&options, 9600); // set input baud rate
+      cfsetospeed(&options, 9600); // set output baud rate
+      tcsetattr(fdusb, TCSANOW, &options); // set options
+      while(1) {
+          if((bytes_read = read(fdusb, buffer, 1250)) != 0) {
+              printf("%s", buffer);
+              buffer[bytes_read] = '\0';
+              break;
+          }
+      }
       
       // this is the message that we'll send back
       /* it actually looks like this:
@@ -80,12 +104,13 @@ int start_server(int PORT_NUMBER)
            "name": "cit595"
         }
       */
-      char *reply = "{\n\"name\": \"cit595\"\n}\n";
+      char reply[200];
+      sprintf(reply, "{\n\"name\": \"%s\"\n}\n", buffer);
       
       // 6. send: send the message over the socket
       // note that the second argument is a char*, and the third is the number of chars
       send(fd, reply, strlen(reply), 0);
-      //printf("Server sent message: %s\n", reply);
+      printf("Server sent message: %s\n", reply);
 
       // 7. close: close the socket connection
       close(fd);
