@@ -25,7 +25,7 @@ int main() {
     printf("Opened file\n");
     int bytes_read;    
     if (fd == -1) {
-        printf("We messed up");
+        printf("We messed up\n");
         return -1;
     }
     printf("File opened\n");
