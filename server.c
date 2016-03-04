@@ -109,7 +109,8 @@ int start_server(int PORT_NUMBER)
       
       // 6. send: send the message over the socket
       // note that the second argument is a char*, and the third is the number of chars
-      send(fd, reply, strlen(reply), 0);
+      bytes_received =send(fd, reply, strlen(reply), 0);
+      printf("%d\n", bytes_received);
       printf("Server sent message: %s\n", reply);
 
       // 7. close: close the socket connection
