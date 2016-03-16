@@ -66,55 +66,58 @@ int start_server(int PORT_NUMBER)
 
       // 4. accept: wait here until we get a connection on that port
       int sin_size = sizeof(struct sockaddr_in);
-      int fd = accept(sock, (struct sockaddr *)&client_addr,(socklen_t *)&sin_size);
-      printf("Server got a connection from (%s, %d)\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
-      
-      // buffer to read data into
-      char request[1024];
-      
-      // 5. recv: read incoming message into buffer
-      int bytes_received = recv(fd,request,1024,0);
-      // null-terminate the string
-      request[bytes_received] = '\0';
-      printf("Here comes the message:\n");
-      printf("%s\n", request);
-
-      int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
-      int bytes_read;    
-      if (fdusb == -1) {
-          printf("We messed up\n");
-          return -1;
-      }
-      struct termios options; // struct to hold options
-      tcgetattr(fdusb, &options);  // associate with this fd
-      cfsetispeed(&options, 9600); // set input baud rate
-      cfsetospeed(&options, 9600); // set output baud rate
-      tcsetattr(fdusb, TCSANOW, &options); // set options
+      int fd;
       while(1) {
-          if((bytes_read = read(fdusb, buffer, 1250)) != 0) {
-              printf("%s", buffer);
-              buffer[bytes_read] = '\0';
-              break;
-          }
+        fd = accept(sock, (struct sockaddr *)&client_addr,(socklen_t *)&sin_size);
+        printf("Server got a connection from (%s, %d)\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
+        
+        // buffer to read data into
+        char request[1024];
+        
+        // 5. recv: read incoming message into buffer
+        int bytes_received = recv(fd,request,1024,0);
+        // null-terminate the string
+        request[bytes_received] = '\0';
+        printf("Here comes the message:\n");
+        printf("%s\n", request);
+
+        int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
+        int bytes_read;    
+        if (fdusb == -1) {
+            printf("We messed up\n");
+            return -1;
+        }
+        struct termios options; // struct to hold options
+        tcgetattr(fdusb, &options);  // associate with this fd
+        cfsetispeed(&options, 9600); // set input baud rate
+        cfsetospeed(&options, 9600); // set output baud rate
+        tcsetattr(fdusb, TCSANOW, &options); // set options
+        while(1) {
+            if((bytes_read = read(fdusb, buffer, 1250)) != 0) {
+                printf("%s", buffer);
+                buffer[bytes_read] = '\0';
+                break;
+            }
+        }
+        char reply[200];
+        sprintf(reply, "{\n\"name\": \"%c\"\n}\n", buffer[0]);
+        
+        // 6. send: send the message over the socket
+        // note that the second argument is a char*, and the third is the number of chars
+        bytes_received =send(fd, reply, strlen(reply), 0);
+        printf("%d\n", bytes_received);
+        printf("Server sent message: %s\n", reply);
+
+        // 7. close: close the socket connection
+        close(fd);
       }
-      
       // this is the message that we'll send back
       /* it actually looks like this:
         {
            "name": "cit595"
         }
       */
-      char reply[200];
-      sprintf(reply, "{\n\"name\": \"%s\"\n}\n", buffer);
       
-      // 6. send: send the message over the socket
-      // note that the second argument is a char*, and the third is the number of chars
-      bytes_received =send(fd, reply, strlen(reply), 0);
-      printf("%d\n", bytes_received);
-      printf("Server sent message: %s\n", reply);
-
-      // 7. close: close the socket connection
-      close(fd);
       close(sock);
       printf("Server closed connection\n");
   
