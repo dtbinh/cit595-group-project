@@ -12,14 +12,21 @@
 #include <termios.h>
 #include <unistd.h>
 
-char buffer[1250];
-
+char buffer[20];
+char big_buffer[10000];
 
 void clear_buffer() {
     int i;
-    for (i = 0; i < 1250; i++) {
+    for (i = 0; i < 20; i++) {
         buffer[i] = '\0';
     }    
+}
+
+void clear_big_buffer() {
+  int i;
+    for (i = 0; i < 10000; i++) {
+        big_buffer[i] = '\0';
+    }
 }
 
 int start_server(int PORT_NUMBER)
@@ -29,16 +36,17 @@ int start_server(int PORT_NUMBER)
       struct sockaddr_in server_addr,client_addr;    
       
       int sock; // socket descriptor
-
+      char temperature[20];
+      int i;
       // 1. socket: creates a socket descriptor that you later use to make other system calls
       if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-	perror("Socket");
-	exit(1);
+        perror("Socket");
+        exit(1);
       }
       int temp;
       if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&temp,sizeof(int)) == -1) {
-	perror("Setsockopt");
-	exit(1);
+        perror("Setsockopt");
+        exit(1);
       }
 
       // configure the server
@@ -49,14 +57,14 @@ int start_server(int PORT_NUMBER)
       
       // 2. bind: use the socket and associate it with the port number
       if (bind(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1) {
-	perror("Unable to bind");
-	exit(1);
+        perror("Unable to bind");
+        exit(1);
       }
 
       // 3. listen: indicates that we want to listn to the port to which we bound; second arg is number of allowed connections
       if (listen(sock, 5) == -1) {
-	perror("Listen");
-	exit(1);
+        perror("Listen");
+        exit(1);
       }
           
       // once you get here, the server is set up and about to start listening
@@ -67,8 +75,11 @@ int start_server(int PORT_NUMBER)
       // 4. accept: wait here until we get a connection on that port
       int sin_size = sizeof(struct sockaddr_in);
       int fd;
+      big_buffer[0] = '\0';
       while(1) {
+        printf("Waiting...\n");
         fd = accept(sock, (struct sockaddr *)&client_addr,(socklen_t *)&sin_size);
+        printf("Accepted...\n");
         printf("Server got a connection from (%s, %d)\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
         
         // buffer to read data into
@@ -92,15 +103,39 @@ int start_server(int PORT_NUMBER)
         cfsetispeed(&options, 9600); // set input baud rate
         cfsetospeed(&options, 9600); // set output baud rate
         tcsetattr(fdusb, TCSANOW, &options); // set options
+        int firstnewline;
+        int secondnewline;
+        clear_buffer();
         while(1) {
-            if((bytes_read = read(fdusb, buffer, 1250)) != 0) {
-                printf("%s", buffer);
+            if((bytes_read = read(fdusb, buffer, 20)) != 0) {
+                printf("Buffer: %s\n", buffer);
                 buffer[bytes_read] = '\0';
-                break;
+                strcat(big_buffer, buffer);
+                firstnewline = -1;
+                secondnewline = -1;
+                for (i = 0; i < strlen(big_buffer); i++) {
+                  if (firstnewline == -1 && big_buffer[i] == '\n') {
+                    firstnewline = i;
+                    printf("Firstline: %d\n", firstnewline);
+                  } else if (firstnewline >= 0 && big_buffer[i] == '\n') {
+                    secondnewline = i;
+                    printf("Secondline: %d\n", secondnewline);
+                    break;
+                  }
+                }
             }
+            if (secondnewline > 0) {
+              big_buffer[secondnewline] = '\0';
+              firstnewline++;
+              strcpy(temperature, &big_buffer[firstnewline]);
+              break;
+            }
+            clear_buffer(); 
+            printf("Buffer cleared!\n");
         }
+        clear_big_buffer();
         char reply[200];
-        sprintf(reply, "{\n\"name\": \"%c\"\n}\n", buffer[0]);
+        sprintf(reply, "{\n\"name\": \"%s\"\n}\n", temperature);
         
         // 6. send: send the message over the socket
         // note that the second argument is a char*, and the third is the number of chars
@@ -110,6 +145,7 @@ int start_server(int PORT_NUMBER)
 
         // 7. close: close the socket connection
         close(fd);
+        close(fdusb);
       }
       // this is the message that we'll send back
       /* it actually looks like this:
