@@ -81,6 +81,7 @@ void setup()
   digitalWrite(pirPin, LOW);
 
   //give the sensor some time to calibrate
+  /*
   Serial.print("calibrating sensor ");
     for(int i = 0; i < calibrationTime; i++){
       Serial.print(".");
@@ -89,6 +90,7 @@ void setup()
     Serial.println(" done");
     Serial.println("SENSOR ACTIVE");
     delay(50);
+    */
 } 
 
 /***************************************************************************
@@ -103,6 +105,7 @@ void loop()
   int Decimal;
   byte Temperature_H, Temperature_L, counter, counter2;
   bool IsPositive;
+  long last_movement = 0;
   
   /* Configure 7-Segment to 12mA segment output current, Dynamic mode, 
      and Digits 1, 2, 3 AND 4 are NOT blanked */
@@ -170,7 +173,8 @@ void loop()
          lockLow = false;            
          Serial.println("---");
          Serial.print("motion detected at ");
-         Serial.print(millis()/1000);
+         last_movement = millis();
+         Serial.print(last_movement/1000);
          Serial.println(" sec"); 
          delay(50);
          }         
@@ -198,6 +202,8 @@ void loop()
            delay(50);
            }
        }
+       Serial.print("Last movment at: ");
+       Serial.print((millis() - last_movement)/1000);
     delay (1000);        /* Take temperature read every 1 second */
   }
 } 
@@ -226,6 +232,8 @@ void Cal_temp (int& Decimal, byte& High, byte& Low, bool& sign)
     High = High ^ B01111111;    /* Complement all of the bits, except the MSB */
     Decimal = Decimal ^ 0xFF;   /* Complement all of the bits */
   }  
+  High = High * 9 / 5 + 32;
+  Decimal = Decimal * 9 / 5;
 }
 
 /***************************************************************************
@@ -272,7 +280,7 @@ void Dis_7SEG (int Decimal, byte High, byte Low, bool sign)
   
   if (Digit > 0)                  /* Display decimal point if there is more space on 7-SEG */
   {
-    Number = Decimal / 1000;
+    Number = Decimal / (1000 * (9 / 5));
     Send7SEG (Digit,NumberLookup[Number]);
     Digit--;
   }
@@ -349,5 +357,4 @@ void SerialMonitorPrint (byte Temperature_H, int Decimal, bool IsPositive)
     Serial.print("\n");
 }
     
-
 
