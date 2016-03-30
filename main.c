@@ -1,4 +1,5 @@
 #include <pebble.h>
+#define GColorBulgarianRoseARGB8 ((uint8_t)0b11010000)
 static Window *window;
 static TextLayer *hello_layer;
 static char msg[100];
@@ -24,7 +25,11 @@ void in_received_handler(DictionaryIterator *received, void *context) {
       // put it in this global variable
       strcpy(msg, text_tuple->value->cstring);
     } else strcpy(msg, "no value!");
-    text_layer_set_text(hello_layer, msg);
+
+    text_layer_set_overflow_mode(hello_layer, GTextOverflowModeWordWrap);
+    text_layer_set_text(hello_layer, msg);   
+
+
   } else {
     text_layer_set_text(hello_layer, "no message!");
   }
@@ -67,8 +72,8 @@ static void window_load(Window *window) {
  GRect bounds = layer_get_bounds(window_layer);
  hello_layer = text_layer_create((GRect)
  { .origin = { 0, 72 },
- .size = { bounds.size.w, 20 } });
- text_layer_set_text(hello_layer, "Hello world!");
+ .size = { bounds.size.w, 50 } });
+ text_layer_set_text(hello_layer, "Use OpenWeather!");
  text_layer_set_text_alignment(hello_layer, GTextAlignmentCenter);
  layer_add_child(window_layer, text_layer_get_layer(hello_layer));
 }

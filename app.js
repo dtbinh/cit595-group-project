@@ -1,8 +1,8 @@
 Pebble.addEventListener("appmessage",
   function(e) {
 //     console.log("teseteteststes");
-//     useOpenWeather();
-    sendToServer();
+    useOpenWeather();
+//     sendToServer();
  }
 );
 
@@ -23,6 +23,7 @@ function useOpenWeather(){
     if (response) {
       if (response.name) {
         msg = response.name + ": " + response.weather[0].description;
+//         msg = "Wow very text much long not ok wow"
 //         msg = response.weather[0].description;
       } else msg = "nothing";
     }
