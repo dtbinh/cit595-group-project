@@ -106,6 +106,24 @@ int start_server(int PORT_NUMBER)
         int firstnewline;
         int secondnewline;
         clear_buffer();
+        
+        /* Assumes a GET request. We need an if/else to differentiate between GET/POST.*/
+        
+        /*
+        If GET
+            ... same as existing code below
+        Else if POST
+            Parse string for API temperature
+            Store API temperature variable
+            Compare API temperature variable with test variable (e.g. 70 degrees F)
+            Set color variable to send to Arduino:
+                If API > Arduino: red
+                Else if API < Arduino: blue
+                Else: green
+            Send to Arduino
+
+        */
+        
         while(1) {
             if((bytes_read = read(fdusb, buffer, 20)) != 0) {
                 printf("Buffer: %s\n", buffer);
