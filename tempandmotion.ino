@@ -52,6 +52,8 @@ boolean takeLowTime;
 int pirPin = 2;    //the digital pin connected to the PIR sensor's output
 int ledPin = 6;
 
+char state = 'C';
+
 /* Function prototypes */
 void Cal_temp (int&, byte&, byte&, bool&);
 void Dis_7SEG (int, byte, byte, bool);
@@ -157,7 +159,7 @@ void loop()
     
     /* Display temperature on the serial monitor. 
        Comment out this line if you don't use serial monitor.*/
-    SerialMonitorPrint (Temperature_H, Decimal, IsPositive);
+    SerialMonitorPrint (Temperature_H, Decimal, IsPositive,(millis() - last_movement)/1000);
     
     /* Update RGB LED.*/
     //UpdateRGB (Temperature_H);
@@ -168,7 +170,12 @@ void loop()
        digitalWrite(ledPin, HIGH);   //the led visualizes the sensors output pin state
        digitalWrite(3, HIGH);
        digitalWrite(5, HIGH);
-       if(lockLow){  
+       if(lockLow){
+        if (state == 'C') {
+          state = 'F';
+         } else {
+          state = 'C';
+         }  
          //makes sure we wait for a transition to LOW before any further output is made:
          lockLow = false;            
          Serial.println("---");
@@ -179,6 +186,7 @@ void loop()
          delay(50);
          }         
          takeLowTime = true;
+         
        }
 
      if(digitalRead(pirPin) == LOW){       
@@ -216,6 +224,7 @@ void loop()
 ****************************************************************************/
 void Cal_temp (int& Decimal, byte& High, byte& Low, bool& sign)
 {
+  int remainder;
   if ((High&B10000000)==0x80)    /* Check for negative temperature. */
     sign = 0;
   else
@@ -226,14 +235,33 @@ void Cal_temp (int& Decimal, byte& High, byte& Low, bool& sign)
   Low = Low >> 4; 
   Decimal = Low;
   Decimal = Decimal * 625;      /* Each bit = 0.0625 degree C */
-  
+  if (state == 'F') {
+    Decimal = Decimal *  9 / 5;
+  }
+
   if (sign == 0)                /* if temperature is negative */
   {
     High = High ^ B01111111;    /* Complement all of the bits, except the MSB */
     Decimal = Decimal ^ 0xFF;   /* Complement all of the bits */
   }  
-  High = High * 9 / 5 + 32;
-  Decimal = Decimal * 9 / 5;
+  Serial.print("\nInput High Decimal: ");
+  Serial.print(High, DEC);
+  Serial.print("\nInput High Binary: ");
+  Serial.print(High, BIN);
+  if (state == 'F') {
+    remainder = ((High * 9) % 5)*2;
+    High = High * 9 / 5 + 32;
+    Decimal += remainder * 1000;
+  }
+  Serial.print("\nInput High F Decimal: ");
+  Serial.print(High, DEC);
+  Serial.print("\nInput High F Binary: ");
+  Serial.print(High, BIN);
+  if (state == 'F' && Decimal > 10000) {
+    High = High + 1; //
+    Decimal = Decimal - 10000;
+  }
+  Decimal = Decimal;
 }
 
 /***************************************************************************
@@ -280,14 +308,17 @@ void Dis_7SEG (int Decimal, byte High, byte Low, bool sign)
   
   if (Digit > 0)                  /* Display decimal point if there is more space on 7-SEG */
   {
-    Number = Decimal / (1000 * (9 / 5));
+    Number = Decimal / 1000;
     Send7SEG (Digit,NumberLookup[Number]);
     Digit--;
   }
 
-  if (Digit > 0)                 /* Display "c" if there is more space on 7-SEG */
+  if (Digit > 0 && state == 'C')                 /* Display "c" if there is more space on 7-SEG */
   {
     Send7SEG (Digit,0x58);
+    Digit--;
+  } else if (Digit > 0 && state == 'F') {
+    Send7SEG (Digit,B01110001);
     Digit--;
   }
   
@@ -345,8 +376,11 @@ void UpdateRGB (byte Temperature_H)
  Purpose: 
    Print current read temperature to the serial monitor.
 ****************************************************************************/
-void SerialMonitorPrint (byte Temperature_H, int Decimal, bool IsPositive)
+void SerialMonitorPrint (byte Temperature_H, int Decimal, bool IsPositive, int last_movement)
 {
+    Serial.print("\nS:");
+    Serial.print(state);
+    Serial.print(";T:");
     if (!IsPositive)
     {
       Serial.print("-");
@@ -354,7 +388,8 @@ void SerialMonitorPrint (byte Temperature_H, int Decimal, bool IsPositive)
     Serial.print(Temperature_H, DEC);
     Serial.print(".");
     Serial.print(Decimal, DEC);
-    Serial.print("\n");
+    Serial.print(";M:");
+    Serial.print(last_movement);
+    Serial.print(";\n");
 }
     
-
