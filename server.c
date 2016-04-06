@@ -91,21 +91,6 @@ int start_server(int PORT_NUMBER)
         request[bytes_received] = '\0';
         printf("Here comes the message:\n");
         printf("%s\n", request);
-
-        int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
-        int bytes_read;    
-        if (fdusb == -1) {
-            printf("We messed up\n");
-            return -1;
-        }
-        struct termios options; // struct to hold options
-        tcgetattr(fdusb, &options);  // associate with this fd
-        cfsetispeed(&options, 9600); // set input baud rate
-        cfsetospeed(&options, 9600); // set output baud rate
-        tcsetattr(fdusb, TCSANOW, &options); // set options
-        int firstnewline;
-        int secondnewline;
-        clear_buffer();
         
         /* Assumes a GET request. We need an if/else to differentiate between GET/POST.*/
         
@@ -123,6 +108,23 @@ int start_server(int PORT_NUMBER)
             Send to Arduino
 
         */
+
+        int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
+        int bytes_read;    
+        if (fdusb == -1) {
+            printf("We messed up\n");
+            return -1;
+        }
+        struct termios options; // struct to hold options
+        tcgetattr(fdusb, &options);  // associate with this fd
+        cfsetispeed(&options, 9600); // set input baud rate
+        cfsetospeed(&options, 9600); // set output baud rate
+        tcsetattr(fdusb, TCSANOW, &options); // set options
+        int firstnewline;
+        int secondnewline;
+        clear_buffer();
+        
+
         
         while(1) {
             if((bytes_read = read(fdusb, buffer, 20)) != 0) {
