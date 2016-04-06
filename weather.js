@@ -1,12 +1,14 @@
+
 Pebble.addEventListener("appmessage",
   function(e) {
 //     console.log("teseteteststes");
-//     useOpenWeather();
+//     getCity();
+//     getTemp();
     sendToServer();
  }
 );
 
-function useOpenWeather(){
+function getCity(){
   var key = '863fad9850866cd53fbf3c264f6d4631';
   var req = new XMLHttpRequest();
   var msg = 'Empty Msg!';
@@ -25,17 +27,43 @@ function useOpenWeather(){
     if (response) {
       if (response.name) {
         msg = response.name + ": " + response.weather[0].description;
-        temp = response.main.temp;
+//         temp = response.main.temp;
 //         msg = "Wow very text much long not ok wow"
 //         msg = response.weather[0].description;
       } else msg = "nothing";
     }
-    console.log(temp);
+    console.log(msg);
     // sends message back to pebble
     Pebble.sendAppMessage({ "0": msg });
   };
   req.send(null);
   return msg;
+}
+
+function getTemp(){
+  var key = '863fad9850866cd53fbf3c264f6d4631';
+  var req = new XMLHttpRequest();
+  var msg = 'No Temp!';
+  var celsius;  
+  req.open('GET', 'http://api.openweathermap.org/data/2.5/weather?' +
+  'lat=' + 39.98 + '&lon=' + -75.19  + '&cnt=1&appid=' + key, true);
+
+  req.onload = function(e) {
+    msg = "failed";
+    var response = JSON.parse(req.responseText);
+    console.log("returned something!");
+    if (response) {
+      if (response.name) {
+        msg = response.main.temp;
+        celsius = parseFloat(msg) - 273.15;
+      } else msg = "nothing";
+    }
+    console.log(celsius);
+    // sends message back to pebble
+    Pebble.sendAppMessage({ "0": celsius });
+  };
+  req.send(null);
+  return celsius;
 }
 
 function sendToServer() {
@@ -44,8 +72,12 @@ function sendToServer() {
   var port = "3001"; // Same port specified as argument to server
   var url = "http://" + ipAddress + ":" + port + "/";
   var method = "GET";
+  var sendStuff = "POST";
   var async = true;
-  var weather = useOpenWeather();
+//   var city = getCity();
+  var temp = getTemp();
+  req.open(sendStuff, url, async);
+  req.send(temp);
 //   console.log(weather);
   req.onload = function(e) {
     // see what came back
