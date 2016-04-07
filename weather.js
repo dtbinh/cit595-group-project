@@ -2,9 +2,10 @@ var celsius;
 
 Pebble.addEventListener("appmessage",
   function(e) {
-//     getCity();
+    getCity();
 //     getTemp();
-    sendToServer();
+    setTimeout(sendToServer, 2000);
+    
  }
 );
 
@@ -12,7 +13,7 @@ function getCity(){
   var key = '863fad9850866cd53fbf3c264f6d4631';
   var req = new XMLHttpRequest();
   var msg = 'Empty Msg!';
-  var temp;
+//   var temp;
   
   req.open('GET', 'http://api.openweathermap.org/data/2.5/weather?' +
   'lat=' + 39.98 + '&lon=' + -75.19  + '&cnt=1&appid=' + key, true);
@@ -81,6 +82,7 @@ function sendToServer() {
   temp = Math.round(temp * 100) / 100;
   console.log('temperature is ' + temp);
   var strTemp = temp.toString();
+  Pebble.sendAppMessage({ "0": 'Now comaparing temperature...' });
 //   console.log(strTemp);
   req.open(sendStuff, url, async);
   req.send(strTemp);
