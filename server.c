@@ -76,8 +76,9 @@ int start_server(int PORT_NUMBER)
       int sin_size = sizeof(struct sockaddr_in);
       int fd;
       big_buffer[0] = '\0';
-      int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
+      
       while(1) {
+        int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
         printf("Waiting...\n");
         fd = accept(sock, (struct sockaddr *)&client_addr,(socklen_t *)&sin_size);
         printf("Accepted...\n");
