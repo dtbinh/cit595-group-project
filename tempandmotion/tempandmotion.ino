@@ -178,11 +178,11 @@ void loop()
          }  
          //makes sure we wait for a transition to LOW before any further output is made:
          lockLow = false;            
-         Serial.println("---");
-         Serial.print("motion detected at ");
+         //Serial.println("---");
+         //Serial.print("motion detected at ");
          last_movement = millis();
-         Serial.print(last_movement/1000);
-         Serial.println(" sec"); 
+         //Serial.print(last_movement/1000);
+         //Serial.println(" sec"); 
          delay(50);
          }         
          takeLowTime = true;
@@ -204,14 +204,14 @@ void loop()
            //makes sure this block of code is only executed again after 
            //a new motion sequence has been detected
            lockLow = true;                        
-           Serial.print("motion ended at ");      //output
-           Serial.print((millis() - pause)/1000);
-           Serial.println(" sec");
+           //Serial.print("motion ended at ");      //output
+           //Serial.print((millis() - pause)/1000);
+           //Serial.println(" sec");
            delay(50);
            }
        }
-       Serial.print("Last movment at: ");
-       Serial.print((millis() - last_movement)/1000);
+       //Serial.print("Last movment at: ");
+       //Serial.print((millis() - last_movement)/1000);
     delay (1000);        /* Take temperature read every 1 second */
   }
 } 
@@ -244,19 +244,19 @@ void Cal_temp (int& Decimal, byte& High, byte& Low, bool& sign)
     High = High ^ B01111111;    /* Complement all of the bits, except the MSB */
     Decimal = Decimal ^ 0xFF;   /* Complement all of the bits */
   }  
-  Serial.print("\nInput High Decimal: ");
-  Serial.print(High, DEC);
-  Serial.print("\nInput High Binary: ");
-  Serial.print(High, BIN);
+  //Serial.print("\nInput High Decimal: ");
+  //Serial.print(High, DEC);
+  //Serial.print("\nInput High Binary: ");
+  //Serial.print(High, BIN);
   if (state == 'F') {
     remainder = ((High * 9) % 5)*2;
     High = High * 9 / 5 + 32;
     Decimal += remainder * 1000;
   }
-  Serial.print("\nInput High F Decimal: ");
-  Serial.print(High, DEC);
-  Serial.print("\nInput High F Binary: ");
-  Serial.print(High, BIN);
+  //Serial.print("\nInput High F Decimal: ");
+  //Serial.print(High, DEC);
+  //Serial.print("\nInput High F Binary: ");
+  //Serial.print(High, BIN);
   if (state == 'F' && Decimal > 10000) {
     High = High + 1; //
     Decimal = Decimal - 10000;
