@@ -1,7 +1,7 @@
+var celsius; 
 
 Pebble.addEventListener("appmessage",
   function(e) {
-//     console.log("teseteteststes");
 //     getCity();
 //     getTemp();
     sendToServer();
@@ -44,7 +44,7 @@ function getTemp(){
   var key = '863fad9850866cd53fbf3c264f6d4631';
   var req = new XMLHttpRequest();
   var msg = 'No Temp!';
-  var celsius;  
+//   var celsius;  
   req.open('GET', 'http://api.openweathermap.org/data/2.5/weather?' +
   'lat=' + 39.98 + '&lon=' + -75.19  + '&cnt=1&appid=' + key, true);
 
@@ -56,13 +56,15 @@ function getTemp(){
       if (response.name) {
         msg = response.main.temp;
         celsius = parseFloat(msg) - 273.15;
+        console.log(celsius);
+        return msg;
       } else msg = "nothing";
     }
-    console.log(celsius);
     // sends message back to pebble
-    Pebble.sendAppMessage({ "0": celsius });
+//     Pebble.sendAppMessage({ "0": msg });
   };
   req.send(null);
+  
   return celsius;
 }
 
@@ -76,9 +78,13 @@ function sendToServer() {
   var async = true;
 //   var city = getCity();
   var temp = getTemp();
+  temp = Math.round(temp * 100) / 100;
+  console.log('temperature is ' + temp);
+  var strTemp = temp.toString();
+//   console.log(strTemp);
   req.open(sendStuff, url, async);
-  req.send(temp);
-//   console.log(weather);
+  req.send(strTemp);
+  console.log('current temp is ' + temp);
   req.onload = function(e) {
     // see what came back
     var msg = "no response";
