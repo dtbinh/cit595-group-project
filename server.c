@@ -76,6 +76,7 @@ int start_server(int PORT_NUMBER)
       int sin_size = sizeof(struct sockaddr_in);
       int fd;
       big_buffer[0] = '\0';
+      int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
       while(1) {
         printf("Waiting...\n");
         fd = accept(sock, (struct sockaddr *)&client_addr,(socklen_t *)&sin_size);
@@ -111,7 +112,8 @@ int start_server(int PORT_NUMBER)
 
 
         if (request[0] == 'G') {
-          int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
+          close(fdusb); 
+          fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
           int bytes_read;    
           if (fdusb == -1) {
               printf("We messed up\n");
@@ -169,9 +171,25 @@ int start_server(int PORT_NUMBER)
           close(fd);
           close(fdusb);
 
-        } else if (request[0] == 'P') {
+        } else if (request[0] == 'P') {          
+          // 6. send: send the message over the socket
+          // note that the second argument is a char*, and the third is the number of chars
           
+          
+          int bytes_read;    
+          if (fdusb == -1) {
+              printf("We messed up\n");
+              return -1;
+          }
 
+          int bytes_wrote;
+
+          bytes_wrote = write(fdusb, "Hello!", strlen("Hello!"));
+          printf("%d\n", bytes_wrote);
+          // 7. close: close the socket connection
+          bytes_received =send(fd, request, strlen(request), 0);
+          close(fd);
+          //close(fdusb);          
         }
         
       }
