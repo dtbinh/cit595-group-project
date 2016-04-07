@@ -109,63 +109,71 @@ int start_server(int PORT_NUMBER)
 
         */
 
-        int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
-        int bytes_read;    
-        if (fdusb == -1) {
-            printf("We messed up\n");
-            return -1;
-        }
-        struct termios options; // struct to hold options
-        tcgetattr(fdusb, &options);  // associate with this fd
-        cfsetispeed(&options, 9600); // set input baud rate
-        cfsetospeed(&options, 9600); // set output baud rate
-        tcsetattr(fdusb, TCSANOW, &options); // set options
-        int firstnewline;
-        int secondnewline;
-        clear_buffer();
-        
 
-        
-        while(1) {
-            if((bytes_read = read(fdusb, buffer, 20)) != 0) {
-                printf("Buffer: %s\n", buffer);
-                buffer[bytes_read] = '\0';
-                strcat(big_buffer, buffer);
-                firstnewline = -1;
-                secondnewline = -1;
-                for (i = 0; i < strlen(big_buffer); i++) {
-                  if (firstnewline == -1 && big_buffer[i] == '\n') {
-                    firstnewline = i;
-                    printf("Firstline: %d\n", firstnewline);
-                  } else if (firstnewline >= 0 && big_buffer[i] == '\n') {
-                    secondnewline = i;
-                    printf("Secondline: %d\n", secondnewline);
-                    break;
+        if (request[0] == 'G') {
+          int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
+          int bytes_read;    
+          if (fdusb == -1) {
+              printf("We messed up\n");
+              return -1;
+          }
+          struct termios options; // struct to hold options
+          tcgetattr(fdusb, &options);  // associate with this fd
+          cfsetispeed(&options, 9600); // set input baud rate
+          cfsetospeed(&options, 9600); // set output baud rate
+          tcsetattr(fdusb, TCSANOW, &options); // set options
+          int firstnewline;
+          int secondnewline;
+          clear_buffer();
+          
+
+          
+          while(1) {
+              if((bytes_read = read(fdusb, buffer, 20)) != 0) {
+                  printf("Buffer: %s\n", buffer);
+                  buffer[bytes_read] = '\0';
+                  strcat(big_buffer, buffer);
+                  firstnewline = -1;
+                  secondnewline = -1;
+                  for (i = 0; i < strlen(big_buffer); i++) {
+                    if (firstnewline == -1 && big_buffer[i] == 'T') {
+                      firstnewline = i;
+                      printf("Firstline: %d\n", firstnewline);
+                    } else if (firstnewline >= 0 && big_buffer[i] == ';') {
+                      secondnewline = i;
+                      printf("Secondline: %d\n", secondnewline);
+                      break;
+                    }
                   }
-                }
-            }
-            if (secondnewline > 0) {
-              big_buffer[secondnewline] = '\0';
-              firstnewline++;
-              strcpy(temperature, &big_buffer[firstnewline]);
-              break;
-            }
-            clear_buffer(); 
-            printf("Buffer cleared!\n");
-        }
-        clear_big_buffer();
-        char reply[200];
-        sprintf(reply, "{\n\"name\": \"%s\"\n}\n", temperature);
-        
-        // 6. send: send the message over the socket
-        // note that the second argument is a char*, and the third is the number of chars
-        bytes_received =send(fd, reply, strlen(reply), 0);
-        printf("%d\n", bytes_received);
-        printf("Server sent message: %s\n", reply);
+              }
+              if (secondnewline > 0) {
+                big_buffer[secondnewline] = '\0';
+                firstnewline = firstnewline + 2;
+                strcpy(temperature, &big_buffer[firstnewline]);
+                break;
+              }
+              clear_buffer(); 
+              printf("Buffer cleared!\n");
+          }
+          clear_big_buffer();
+          char reply[200];
+          sprintf(reply, "{\n\"name\": \"%s\"\n}\n", temperature);
+          
+          // 6. send: send the message over the socket
+          // note that the second argument is a char*, and the third is the number of chars
+          bytes_received =send(fd, reply, strlen(reply), 0);
+          printf("%d\n", bytes_received);
+          printf("Server sent message: %s\n", reply);
 
-        // 7. close: close the socket connection
-        close(fd);
-        close(fdusb);
+          // 7. close: close the socket connection
+          close(fd);
+          close(fdusb);
+
+        } else if (request[0] == 'P') {
+          
+
+        }
+        
       }
       // this is the message that we'll send back
       /* it actually looks like this:
