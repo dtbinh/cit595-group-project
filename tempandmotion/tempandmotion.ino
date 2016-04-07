@@ -93,6 +93,7 @@ void setup()
     Serial.println("SENSOR ACTIVE");
     delay(50);
     */
+    
 } 
 
 /***************************************************************************
@@ -167,9 +168,9 @@ void loop()
     /* Display temperature on the 7-Segment */
     Dis_7SEG (Decimal, Temperature_H, Temperature_L, IsPositive);
     if(digitalRead(pirPin) == HIGH){
-       digitalWrite(ledPin, HIGH);   //the led visualizes the sensors output pin state
-       digitalWrite(3, HIGH);
-       digitalWrite(5, HIGH);
+       //digitalWrite(ledPin, HIGH);   //the led visualizes the sensors output pin state
+       //digitalWrite(3, HIGH);
+       //digitalWrite(5, HIGH);
        if(lockLow){
         if (state == 'C') {
           state = 'F';
@@ -212,6 +213,9 @@ void loop()
        }
        //Serial.print("Last movment at: ");
        //Serial.print((millis() - last_movement)/1000);
+       if (Serial.available() > 0) {
+        digitalWrite(5, HIGH);
+        }
     delay (1000);        /* Take temperature read every 1 second */
   }
 } 
