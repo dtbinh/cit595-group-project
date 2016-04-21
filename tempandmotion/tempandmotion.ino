@@ -31,6 +31,9 @@
 #define COLD (23)      /* Cold temperature, drive blue LED (23c) */
 #define HOT (26)       /* Hot temperature, drive red LED (27c) */
 
+#define STANDBY (1)
+#define ACTIVE (0)
+
 const byte NumberLookup[16] =   {0x3F,0x06,0x5B,0x4F,0x66,
                                  0x6D,0x7D,0x07,0x7F,0x6F, 
                                  0x77,0x7C,0x39,0x5E,0x79,0x71};
@@ -53,7 +56,7 @@ int pirPin = 2;    //the digital pin connected to the PIR sensor's output
 int ledPin = 6;
 
 char state = 'C';
-
+int mode = ACTIVE;
 /* Function prototypes */
 void Cal_temp (int&, byte&, byte&, bool&);
 void Dis_7SEG (int, byte, byte, bool);
@@ -166,7 +169,10 @@ void loop()
     //UpdateRGB (Temperature_H);
     
     /* Display temperature on the 7-Segment */
-    Dis_7SEG (Decimal, Temperature_H, Temperature_L, IsPositive);
+    if (mode == ACTIVE) {
+      Dis_7SEG (Decimal, Temperature_H, Temperature_L, IsPositive);  
+    }
+    
     if(digitalRead(pirPin) == HIGH){
        //digitalWrite(ledPin, HIGH);   //the led visualizes the sensors output pin state
        //digitalWrite(3, HIGH);
@@ -213,10 +219,27 @@ void loop()
        }
        //Serial.print("Last movment at: ");
        //Serial.print((millis() - last_movement)/1000);
+       int read_byte;
        if (Serial.available() > 0) {
-        digitalWrite(5, HIGH);
+        while (Serial.available() > 0) {
+          read_byte = Serial.read();
+          if ((char) read_byte == 'M') {
+            if (mode == STANDBY) {
+              mode = ACTIVE;
+            } else {
+              mode = STANDBY;
+            }
+          } else if ((char) read_byte == 'T') {
+            if (state == 'C') {
+              state = 'F';
+            } else {
+              state = 'C';
+            }
+          }
         }
-    delay (1000);        /* Take temperature read every 1 second */
+        //digitalWrite(5, HIGH);
+       }
+    delay (5000);        /* Take temperature read every 1 second */
   }
 } 
 
