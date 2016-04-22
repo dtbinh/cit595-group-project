@@ -44,7 +44,7 @@ void receive_data() {
     tcsetattr(fdusb, TCSANOW, &options); // set options
     int firstnewline;
     int secondnewline;
-    char temperature[20];
+    char temperature[50];
     while(1) {
         //clear_buffer();
         int bytes_read;
@@ -68,15 +68,18 @@ void receive_data() {
                     break;
                 }
             }
-        }
-        if (secondnewline > 0) {
-            big_buffer[secondnewline] = '\0';
-            firstnewline = firstnewline + 2;
-            strcpy(temperature, &big_buffer[firstnewline]);
-            head = add_to_list(head, atof(temperature));
+            if (secondnewline > 0) {
+                big_buffer[secondnewline] = '\0';
+                firstnewline = firstnewline + 2;
+                printf("Copying list...");
+                strcpy(temperature, &big_buffer[firstnewline]);
+                printf("Adding to list");
+                head = add_to_list(head, atof(temperature));
+            }
         }
         clear_buffer();
         printf("Buffer cleared!\n");
+        print_list(head);
         head = trim_list(head);
     }
     
@@ -171,7 +174,7 @@ int start_server(int PORT_NUMBER)
         if (request[0] == 'G') {
             clear_big_buffer();
             char reply[200];
-            sprintf(reply, "{\n\"name\": \"%f\"\n}\n", get_latest(head));
+            sprintf(reply, "{\n \"temp\": %f,\n \"high\": %f,\n \"average\": %f,\n \"low\": %f,\n   }\n", get_latest(head), get_high(head), get_average(head), get_low(head));
             
             // 6. send: send the message over the socket
             // note that the second argument is a char*, and the third is the number of chars
