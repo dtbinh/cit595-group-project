@@ -9,12 +9,14 @@ typedef struct temp_node {
 } node ;
 
 // function declarations
-node* add_to_list(node* head_node, char* ht);
-node* search_list(node* head_node, char* ht);
-node* get_top_ten(node* head_node);
-void print_list(node* head_node );
-void print_list_with_standings(node* head_node );
-node* delete_list(node* head_node );
+node* add_to_list (node* head_node, double temp);
+double get_high(node* head_node);
+double get_latest(node* head_node);
+double get_low(node* head_node);
+double get_average(node* head_node);
+node* trim_list(node* head_node);
+void print_list(node* head_node);
+node* delete_list(node* head_node);
 
 //adds a node to the end of the list if it has 
 //not appeared yet, or increments the count
@@ -33,7 +35,7 @@ node* add_to_list (node* head_node, double temp) {
 		//set the fields
 		new_node->next = NULL;
 		new_node->temp = temp;
-		new_node->addtime = time();
+		new_node->addtime = time(NULL);
 		return new_node;
 	} else {
 		current = head_node;
@@ -47,20 +49,37 @@ node* add_to_list (node* head_node, double temp) {
 		current->next = new_node;
 		new_node->next = NULL;
 		new_node->temp = temp;
-		new_node->addtime = time();
+		new_node->addtime = time(NULL);
 		return head_node;
 	}
 }
+
+double get_latest(node* head_node) {
+    //return null for an empty list
+    if (head_node == NULL) {
+        return -1000;
+    }
+    //set up variables
+    node* current = head_node;
+    
+    //loop through 10 times, each time finding a new max (that is, the max not already
+    //in the top_ten list)
+    current = head_node;
+    while (current->next) {
+        current = current->next;
+    }
+    return current->temp;
+}
+
 
 //retrieve the top ten nodes by highest count
 double get_high(node* head_node) {
 	//return null for an empty list
 	if (head_node == NULL) {
-		return NULL;
+		return -1000;
 	}
 	//set up variables
 	node* current = head_node;
-	char current_top[150];
 	double max = 0;
 
 	//loop through 10 times, each time finding a new max (that is, the max not already
@@ -79,7 +98,7 @@ double get_high(node* head_node) {
 double get_low(node* head_node) {
 	//return null for an empty list
 	if (head_node == NULL) {
-		return NULL;
+		return -1000;
 	}
 	//set up variables
 	node* current = head_node;
@@ -95,13 +114,13 @@ double get_low(node* head_node) {
 		}
 		current = current->next;
 	}
-	return max;
+	return min;
 }
 
 double get_average(node* head_node) {
 	//return null for an empty list
 	if (head_node == NULL) {
-		return NULL;
+		return -1000;
 	}
 	//set up variables
 	node* current = head_node;
@@ -127,7 +146,7 @@ node* trim_list(node* head_node) {
 	}
 	//set up variables
 	node* current = head_node;
-	int current_time = time();
+	int current_time = time(NULL);
 	if (head_node == NULL) {
 		return NULL;
 	}

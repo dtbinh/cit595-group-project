@@ -11,9 +11,14 @@
 #include <signal.h>
 #include <termios.h>
 #include <unistd.h>
+#include <pthread.h>
+#include "linkedlist.h"
+
 
 char buffer[20];
 char big_buffer[10000];
+int fdusb;
+node* head;
 
 void clear_buffer() {
     int i;
@@ -30,19 +35,22 @@ void clear_big_buffer() {
 }
 
 void receive_data() {
-    int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
+    fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
+    int i;
+    struct termios options; // struct to hold options
     tcgetattr(fdusb, &options);  // associate with this fd
     cfsetispeed(&options, 9600); // set input baud rate
     cfsetospeed(&options, 9600); // set output baud rate
     tcsetattr(fdusb, TCSANOW, &options); // set options
     int firstnewline;
     int secondnewline;
+    char temperature[20];
     while(1) {
         //clear_buffer();
         int bytes_read;
         if (fdusb == -1) {
             printf("We messed up\n");
-            return -1;
+            return;
         }
         if((bytes_read = read(fdusb, buffer, 20)) > 0) {
             printf("Buffer: %s\n", buffer);
@@ -65,10 +73,11 @@ void receive_data() {
             big_buffer[secondnewline] = '\0';
             firstnewline = firstnewline + 2;
             strcpy(temperature, &big_buffer[firstnewline]);
-            break;
+            head = add_to_list(head, atof(temperature));
         }
         clear_buffer();
         printf("Buffer cleared!\n");
+        head = trim_list(head);
     }
     
 }
@@ -79,15 +88,13 @@ int start_server(int PORT_NUMBER)
     // structs to represent the server and client
     struct sockaddr_in server_addr,client_addr;
     
-    int sock; // socket descriptor
-    char temperature[20];
-    int i;
+    int sock, error, temp, i; // socket descriptor
+    
     // 1. socket: creates a socket descriptor that you later use to make other system calls
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("Socket");
         exit(1);
     }
-    int temp;
     if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&temp,sizeof(int)) == -1) {
         perror("Setsockopt");
         exit(1);
@@ -120,7 +127,12 @@ int start_server(int PORT_NUMBER)
     int sin_size = sizeof(struct sockaddr_in);
     int fd;
     big_buffer[0] = '\0';
-    pthread_t prompt;
+    pthread_t usbreader;
+    error = pthread_create(&usbreader, NULL, receive_data, NULL);
+    if (error != 0) {
+        printf("Error in thread creation\n");
+        return -1;
+    }
     
     while(1) {
         printf("Waiting...\n");
@@ -157,10 +169,9 @@ int start_server(int PORT_NUMBER)
         
         
         if (request[0] == 'G') {
-            struct termios options; // struct to hold options
             clear_big_buffer();
             char reply[200];
-            sprintf(reply, "{\n\"name\": \"%s\"\n}\n", temperature);
+            sprintf(reply, "{\n\"name\": \"%f\"\n}\n", get_latest(head));
             
             // 6. send: send the message over the socket
             // note that the second argument is a char*, and the third is the number of chars
@@ -170,7 +181,6 @@ int start_server(int PORT_NUMBER)
             
             // 7. close: close the socket connection
             close(fd);
-            close(fdusb);
             
         } else if (request[0] == 'P') {
             // 6. send: send the message over the socket
@@ -178,11 +188,6 @@ int start_server(int PORT_NUMBER)
             
             
             int bytes_read;
-            if (fdusb == -1) {
-                printf("We messed up\n");
-                return -1;
-            }
-            
             int bytes_wrote;
             
             bytes_wrote = write(fdusb, "Hello!", strlen("Hello!"));
@@ -198,6 +203,11 @@ int start_server(int PORT_NUMBER)
      "name": "cit595"
      }
      */
+    error = pthread_join(usbreader, NULL);
+    if (error != 0) {
+        printf("Error in thread join\n");
+        return -1;
+    }
     
     close(sock);
     printf("Server closed connection\n");
@@ -217,6 +227,7 @@ int main(int argc, char *argv[])
     }
     
     int PORT_NUMBER = atoi(argv[1]);
+    head = NULL;
     start_server(PORT_NUMBER);
 }
 
