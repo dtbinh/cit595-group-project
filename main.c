@@ -5,7 +5,7 @@ static TextLayer *hello_layer;
 static char msg[100];
 
 /* This is called when the down button is clicked */
-void standby_click_handler(ClickRecognizerRef recognizer, void *context) {
+void down_click_handler(ClickRecognizerRef recognizer, void *context) {
 text_layer_set_text(hello_layer, "Standby!"); 
 }
 
@@ -65,7 +65,6 @@ void select_click_handler(ClickRecognizerRef recognizer, void *context)
 }
 
 
-/* this registers the appropriate function to the appropriate button */
 /* this registers the appropriate function to the appropriate button */
 void config_provider(void *context) {
   uint8_t min_clicks = 2;          // Fire after at least one clicks
