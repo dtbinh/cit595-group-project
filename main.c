@@ -4,6 +4,12 @@ static Window *window;
 static TextLayer *hello_layer;
 static char msg[100];
 
+/* This is called when the down button is clicked */
+void standby_click_handler(ClickRecognizerRef recognizer, void *context) {
+text_layer_set_text(hello_layer, "Standby!"); 
+}
+
+
 void out_sent_handler(DictionaryIterator *sent, void *context) {
  // outgoing message was delivered -- do nothing
 }
@@ -61,6 +67,7 @@ void select_click_handler(ClickRecognizerRef recognizer, void *context)
 
 /* this registers the appropriate function to the appropriate button */
 void config_provider(void *context) {
+ window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
  window_single_click_subscribe(BUTTON_ID_SELECT,
 select_click_handler);
 }
