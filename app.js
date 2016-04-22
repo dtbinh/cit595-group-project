@@ -12,6 +12,10 @@ Pebble.addEventListener("appmessage",
  }
 );
 
+function test(){
+   Pebble.sendAppMessage({ "1": 'down button message!' });
+}
+
 function checkConnect(){
   var msg1;
   var msg2;
