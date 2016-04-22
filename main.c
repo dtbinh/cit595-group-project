@@ -1,12 +1,19 @@
 #include <pebble.h>
-#define GColorBulgarianRoseARGB8 ((uint8_t)0b11010000)
 static Window *window;
 static TextLayer *hello_layer;
 static char msg[100];
 
 /* This is called when the down button is clicked */
 void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-text_layer_set_text(hello_layer, "Standby!"); 
+  text_layer_set_text(hello_layer, "Standby!"); 
+  DictionaryIterator *iter;
+ app_message_outbox_begin(&iter);
+ int key = 1;
+  
+ // send the message "standby" to the phone, using key #1
+ Tuplet value = TupletCString(key, "standby");
+ dict_write_tuplet(iter, &value);
+ app_message_outbox_send();
 }
 
 
@@ -17,7 +24,7 @@ void out_sent_handler(DictionaryIterator *sent, void *context) {
 void out_failed_handler(DictionaryIterator *failed,
  AppMessageResult reason, void *context) {
  // outgoing message failed
- text_layer_set_text(hello_layer, "Error out!");
+   text_layer_set_text(hello_layer, "Error out!");
 }
 
 void in_received_handler(DictionaryIterator *received, void *context) {
