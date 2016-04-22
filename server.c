@@ -19,11 +19,11 @@ void clear_buffer() {
     int i;
     for (i = 0; i < 20; i++) {
         buffer[i] = '\0';
-    }    
+    }
 }
 
 void clear_big_buffer() {
-  int i;
+    int i;
     for (i = 0; i < 10000; i++) {
         big_buffer[i] = '\0';
     }
@@ -75,53 +75,54 @@ void receive_data() {
 
 int start_server(int PORT_NUMBER)
 {
-
-      // structs to represent the server and client
-      struct sockaddr_in server_addr,client_addr;
-      
-      int sock; // socket descriptor
-      char temperature[20];
-      int i;
-      // 1. socket: creates a socket descriptor that you later use to make other system calls
-      if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    
+    // structs to represent the server and client
+    struct sockaddr_in server_addr,client_addr;
+    
+    int sock; // socket descriptor
+    char temperature[20];
+    int i;
+    // 1. socket: creates a socket descriptor that you later use to make other system calls
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("Socket");
         exit(1);
-      }
-      int temp;
-      if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&temp,sizeof(int)) == -1) {
+    }
+    int temp;
+    if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&temp,sizeof(int)) == -1) {
         perror("Setsockopt");
         exit(1);
-      }
-
-      // configure the server
-      server_addr.sin_port = htons(PORT_NUMBER); // specify port number
-      server_addr.sin_family = AF_INET;         
-      server_addr.sin_addr.s_addr = INADDR_ANY; 
-      bzero(&(server_addr.sin_zero),8); 
-      
-      // 2. bind: use the socket and associate it with the port number
-      if (bind(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1) {
+    }
+    
+    // configure the server
+    server_addr.sin_port = htons(PORT_NUMBER); // specify port number
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    bzero(&(server_addr.sin_zero),8);
+    
+    // 2. bind: use the socket and associate it with the port number
+    if (bind(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1) {
         perror("Unable to bind");
         exit(1);
-      }
-
-      // 3. listen: indicates that we want to listn to the port to which we bound; second arg is number of allowed connections
-      if (listen(sock, 5) == -1) {
+    }
+    
+    // 3. listen: indicates that we want to listn to the port to which we bound; second arg is number of allowed connections
+    if (listen(sock, 5) == -1) {
         perror("Listen");
         exit(1);
-      }
-          
-      // once you get here, the server is set up and about to start listening
-      printf("\nServer configured to listen on port %d\n", PORT_NUMBER);
-      fflush(stdout);
-     
-
-      // 4. accept: wait here until we get a connection on that port
-      int sin_size = sizeof(struct sockaddr_in);
-      int fd;
-      big_buffer[0] = '\0';
-      
-      while(1) {
+    }
+    
+    // once you get here, the server is set up and about to start listening
+    printf("\nServer configured to listen on port %d\n", PORT_NUMBER);
+    fflush(stdout);
+    
+    
+    // 4. accept: wait here until we get a connection on that port
+    int sin_size = sizeof(struct sockaddr_in);
+    int fd;
+    big_buffer[0] = '\0';
+    pthread_t prompt;
+    
+    while(1) {
         printf("Waiting...\n");
         fd = accept(sock, (struct sockaddr *)&client_addr,(socklen_t *)&sin_size);
         printf("Accepted...\n");
@@ -140,82 +141,82 @@ int start_server(int PORT_NUMBER)
         /* Assumes a GET request. We need an if/else to differentiate between GET/POST.*/
         
         /*
-        If GET
-            ... same as existing code below
-        Else if POST
-            Parse string for API temperature
-            Store API temperature variable
-            Compare API temperature variable with test variable (e.g. 70 degrees F)
-            Set color variable to send to Arduino:
-                If API > Arduino: red
-                Else if API < Arduino: blue
-                Else: green
-            Send to Arduino
-
-        */
-
-
+         If GET
+         ... same as existing code below
+         Else if POST
+         Parse string for API temperature
+         Store API temperature variable
+         Compare API temperature variable with test variable (e.g. 70 degrees F)
+         Set color variable to send to Arduino:
+         If API > Arduino: red
+         Else if API < Arduino: blue
+         Else: green
+         Send to Arduino
+         
+         */
+        
+        
         if (request[0] == 'G') {
-          struct termios options; // struct to hold options
-          clear_big_buffer();
-          char reply[200];
-          sprintf(reply, "{\n\"name\": \"%s\"\n}\n", temperature);
-          
-          // 6. send: send the message over the socket
-          // note that the second argument is a char*, and the third is the number of chars
-          bytes_received =send(fd, reply, strlen(reply), 0);
-          printf("%d\n", bytes_received);
-          printf("Server sent message: %s\n", reply);
-
-          // 7. close: close the socket connection
-          close(fd);
-          close(fdusb);
-
-        } else if (request[0] == 'P') {          
-          // 6. send: send the message over the socket
-          // note that the second argument is a char*, and the third is the number of chars
-          
-          
-          int bytes_read;    
-          if (fdusb == -1) {
-              printf("We messed up\n");
-              return -1;
-          }
-
-          int bytes_wrote;
-
-          bytes_wrote = write(fdusb, "Hello!", strlen("Hello!"));
-          printf("%d\n", bytes_wrote);
-          // 7. close: close the socket connection
-          bytes_received =send(fd, request, strlen(request), 0);
-          close(fd);
+            struct termios options; // struct to hold options
+            clear_big_buffer();
+            char reply[200];
+            sprintf(reply, "{\n\"name\": \"%s\"\n}\n", temperature);
+            
+            // 6. send: send the message over the socket
+            // note that the second argument is a char*, and the third is the number of chars
+            bytes_received =send(fd, reply, strlen(reply), 0);
+            printf("%d\n", bytes_received);
+            printf("Server sent message: %s\n", reply);
+            
+            // 7. close: close the socket connection
+            close(fd);
+            close(fdusb);
+            
+        } else if (request[0] == 'P') {
+            // 6. send: send the message over the socket
+            // note that the second argument is a char*, and the third is the number of chars
+            
+            
+            int bytes_read;
+            if (fdusb == -1) {
+                printf("We messed up\n");
+                return -1;
+            }
+            
+            int bytes_wrote;
+            
+            bytes_wrote = write(fdusb, "Hello!", strlen("Hello!"));
+            printf("%d\n", bytes_wrote);
+            // 7. close: close the socket connection
+            bytes_received =send(fd, request, strlen(request), 0);
+            close(fd);
         }
-      }
-      // this is the message that we'll send back
-      /* it actually looks like this:
-        {
-           "name": "cit595"
-        }
-      */
-      
-      close(sock);
-      printf("Server closed connection\n");
-  
-      return 0;
-} 
+    }
+    // this is the message that we'll send back
+    /* it actually looks like this:
+     {
+     "name": "cit595"
+     }
+     */
+    
+    close(sock);
+    printf("Server closed connection\n");
+    
+    return 0;
+}
 
 
 
 int main(int argc, char *argv[])
 {
-  // check the number of arguments
-  if (argc != 2)
+    // check the number of arguments
+    if (argc != 2)
     {
-      printf("\nUsage: server [port_number]\n");
-      exit(0);
+        printf("\nUsage: server [port_number]\n");
+        exit(0);
     }
-
-  int PORT_NUMBER = atoi(argv[1]);
-  start_server(PORT_NUMBER);
+    
+    int PORT_NUMBER = atoi(argv[1]);
+    start_server(PORT_NUMBER);
 }
 
