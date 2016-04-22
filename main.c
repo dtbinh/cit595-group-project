@@ -66,12 +66,21 @@ void select_click_handler(ClickRecognizerRef recognizer, void *context)
 
 
 /* this registers the appropriate function to the appropriate button */
+/* this registers the appropriate function to the appropriate button */
 void config_provider(void *context) {
- window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
- window_single_click_subscribe(BUTTON_ID_SELECT,
-select_click_handler);
-}
+  uint8_t min_clicks = 2;          // Fire after at least one clicks
+  uint8_t max_clicks = 2;          // Don't fire after two clicks
+  uint16_t timeout = 0;          // Wait 300ms before firing
+  bool last_click_only = true;     // Fire only after the last click
+  
+  window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
 
+  ButtonId id = BUTTON_ID_DOWN;  // The Down button
+  window_multi_click_subscribe(id, min_clicks, max_clicks, timeout,
+                               last_click_only, select_click_handler);
+  
+  window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+}
 
 
 static void window_load(Window *window) {
