@@ -29,11 +29,55 @@ void clear_big_buffer() {
     }
 }
 
+void receive_data() {
+    int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
+    tcgetattr(fdusb, &options);  // associate with this fd
+    cfsetispeed(&options, 9600); // set input baud rate
+    cfsetospeed(&options, 9600); // set output baud rate
+    tcsetattr(fdusb, TCSANOW, &options); // set options
+    int firstnewline;
+    int secondnewline;
+    while(1) {
+        //clear_buffer();
+        int bytes_read;
+        if (fdusb == -1) {
+            printf("We messed up\n");
+            return -1;
+        }
+        if((bytes_read = read(fdusb, buffer, 20)) > 0) {
+            printf("Buffer: %s\n", buffer);
+            buffer[bytes_read] = '\0';
+            strcat(big_buffer, buffer);
+            firstnewline = -1;
+            secondnewline = -1;
+            for (i = 0; i < strlen(big_buffer); i++) {
+                if (firstnewline == -1 && big_buffer[i] == 'T') {
+                    firstnewline = i;
+                    printf("Firstline: %d\n", firstnewline);
+                } else if (firstnewline >= 0 && big_buffer[i] == ';') {
+                    secondnewline = i;
+                    printf("Secondline: %d\n", secondnewline);
+                    break;
+                }
+            }
+        }
+        if (secondnewline > 0) {
+            big_buffer[secondnewline] = '\0';
+            firstnewline = firstnewline + 2;
+            strcpy(temperature, &big_buffer[firstnewline]);
+            break;
+        }
+        clear_buffer();
+        printf("Buffer cleared!\n");
+    }
+    
+}
+
 int start_server(int PORT_NUMBER)
 {
 
       // structs to represent the server and client
-      struct sockaddr_in server_addr,client_addr;    
+      struct sockaddr_in server_addr,client_addr;
       
       int sock; // socket descriptor
       char temperature[20];
@@ -78,7 +122,6 @@ int start_server(int PORT_NUMBER)
       big_buffer[0] = '\0';
       
       while(1) {
-        int fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
         printf("Waiting...\n");
         fd = accept(sock, (struct sockaddr *)&client_addr,(socklen_t *)&sin_size);
         printf("Accepted...\n");
@@ -113,51 +156,7 @@ int start_server(int PORT_NUMBER)
 
 
         if (request[0] == 'G') {
-          close(fdusb); 
-          fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
-          int bytes_read;    
-          if (fdusb == -1) {
-              printf("We messed up\n");
-              return -1;
-          }
           struct termios options; // struct to hold options
-          tcgetattr(fdusb, &options);  // associate with this fd
-          cfsetispeed(&options, 9600); // set input baud rate
-          cfsetospeed(&options, 9600); // set output baud rate
-          tcsetattr(fdusb, TCSANOW, &options); // set options
-          int firstnewline;
-          int secondnewline;
-          clear_buffer();
-          
-
-          
-          while(1) {
-              if((bytes_read = read(fdusb, buffer, 20)) != 0) {
-                  printf("Buffer: %s\n", buffer);
-                  buffer[bytes_read] = '\0';
-                  strcat(big_buffer, buffer);
-                  firstnewline = -1;
-                  secondnewline = -1;
-                  for (i = 0; i < strlen(big_buffer); i++) {
-                    if (firstnewline == -1 && big_buffer[i] == 'T') {
-                      firstnewline = i;
-                      printf("Firstline: %d\n", firstnewline);
-                    } else if (firstnewline >= 0 && big_buffer[i] == ';') {
-                      secondnewline = i;
-                      printf("Secondline: %d\n", secondnewline);
-                      break;
-                    }
-                  }
-              }
-              if (secondnewline > 0) {
-                big_buffer[secondnewline] = '\0';
-                firstnewline = firstnewline + 2;
-                strcpy(temperature, &big_buffer[firstnewline]);
-                break;
-              }
-              clear_buffer(); 
-              printf("Buffer cleared!\n");
-          }
           clear_big_buffer();
           char reply[200];
           sprintf(reply, "{\n\"name\": \"%s\"\n}\n", temperature);
@@ -190,9 +189,7 @@ int start_server(int PORT_NUMBER)
           // 7. close: close the socket connection
           bytes_received =send(fd, request, strlen(request), 0);
           close(fd);
-          //close(fdusb);          
         }
-        
       }
       // this is the message that we'll send back
       /* it actually looks like this:
