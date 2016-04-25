@@ -3,17 +3,18 @@
 #include <stdlib.h>
 
 typedef struct temp_node {
-	int addtime;	//the number of appearences
-	double temp;	//the hashtag text itself
+	int addtime;	//the time it was added
+	double temp_c;	//the temperature in celcius
+    double temp_f;	//the temperature in celcius
 	struct temp_node *next;  // pointer to next node
 } node ;
 
 // function declarations
-node* add_to_list (node* head_node, double temp);
-double get_high(node* head_node);
-double get_latest(node* head_node);
-double get_low(node* head_node);
-double get_average(node* head_node);
+node* add_to_list (node* head_node, double temp, char mode);
+double get_high(node* head_node, char mode);
+double get_latest(node* head_node, char mode);
+double get_low(node* head_node, char mode);
+double get_average(node* head_node, char mode);
 node* trim_list(node* head_node);
 void print_list(node* head_node);
 node* delete_list(node* head_node);
@@ -21,7 +22,7 @@ node* delete_list(node* head_node);
 //adds a node to the end of the list if it has 
 //not appeared yet, or increments the count
 //if it has appear
-node* add_to_list (node* head_node, double temp) {
+node* add_to_list (node* head_node, double temp, char mode) {
 	node* current;
 	node* new_node;
 	//if no hashtag was provided, do nothing and return the old head
@@ -34,7 +35,14 @@ node* add_to_list (node* head_node, double temp) {
 		}
 		//set the fields
 		new_node->next = NULL;
-		new_node->temp = temp;
+        if (mode == 'C') {
+            new_node->temp_c = temp;
+            new_node->temp_f = temp*1.8 + 32;
+        } else {
+            new_node->temp_f = temp;
+            new_node->temp_c = (temp-32)/1.8;
+        }
+		
 		new_node->addtime = time(NULL);
 		return new_node;
 	} else {
@@ -48,13 +56,19 @@ node* add_to_list (node* head_node, double temp) {
 		}
 		current->next = new_node;
 		new_node->next = NULL;
-		new_node->temp = temp;
+        if (mode == 'C') {
+            new_node->temp_c = temp;
+            new_node->temp_f = temp*1.8 + 32;
+        } else {
+            new_node->temp_f = temp;
+            new_node->temp_c = (temp-32)/1.8;
+        }
 		new_node->addtime = time(NULL);
 		return head_node;
 	}
 }
 
-double get_latest(node* head_node) {
+double get_latest(node* head_node, char mode) {
     //return null for an empty list
     if (head_node == NULL) {
         return -1000;
@@ -68,12 +82,16 @@ double get_latest(node* head_node) {
     while (current->next) {
         current = current->next;
     }
-    return current->temp;
+    if (mode == 'C') {
+        return current->temp_c;
+    } else {
+        return current->temp_f;
+    }
 }
 
 
 //retrieve the top ten nodes by highest count
-double get_high(node* head_node) {
+double get_high(node* head_node, char mode) {
 	//return null for an empty list
 	if (head_node == NULL) {
 		return -1000;
@@ -87,15 +105,22 @@ double get_high(node* head_node) {
 	current = head_node;
 	max = 0;
 	while (current) {
-		if (max < current->temp) {
-			max = current->temp;
-		}
+        if (mode == 'C') {
+            if (max < current->temp_c) {
+                max = current->temp_c;
+            }
+        } else {
+            if (max < current->temp_f) {
+                max = current->temp_f;
+            }
+        }
+		
 		current = current->next;
 	}
 	return max;
 }
 
-double get_low(node* head_node) {
+double get_low(node* head_node, char mode) {
 	//return null for an empty list
 	if (head_node == NULL) {
 		return -1000;
@@ -109,15 +134,21 @@ double get_low(node* head_node) {
 	//in the top_ten list)
 	current = head_node;
 	while (current) {
-		if (min > current->temp) {
-			min = current->temp;
-		}
+        if (mode == 'C') {
+            if (min > current->temp_c) {
+                min = current->temp_c;
+            }
+        } else {
+            if (min > current->temp_f) {
+                min = current->temp_f;
+            }
+        }
 		current = current->next;
 	}
 	return min;
 }
 
-double get_average(node* head_node) {
+double get_average(node* head_node, char mode) {
 	//return null for an empty list
 	if (head_node == NULL) {
 		return -1000;
@@ -132,7 +163,11 @@ double get_average(node* head_node) {
 	//in the top_ten list)
 	current = head_node;
 	while (current) {
-		total += current->temp;
+        if (mode == 'C') {
+            total += current->temp_c;
+        } else {
+            total += current->temp_f;
+        }
 		count++;
 		current = current->next;
 	}
@@ -145,15 +180,17 @@ node* trim_list(node* head_node) {
 		return NULL;
 	}
 	//set up variables
-	node* current = head_node;
 	int current_time = time(NULL);
 	if (head_node == NULL) {
 		return NULL;
 	}
-	while((head_node->addtime - current_time) > 3600) {
+	while((current_time - head_node->addtime) > 10) {
 		node* current = head_node->next;
 		free(head_node);
 		head_node = current;
+        if (head_node == NULL) {
+            return NULL;
+        }
 	}
 	return head_node;
 }
@@ -163,7 +200,7 @@ node* trim_list(node* head_node) {
 void print_list(node* head_node) {
 	node* current = head_node;
 	while (current) {
-		printf("%d: %f\n", current->addtime, current->temp);
+		printf("%d: %f degrees C, %f degrees F\n", current->addtime, current->temp_c, current->temp_f);
 		current = current->next;
 	}
 }

@@ -171,6 +171,11 @@ void loop()
     /* Display temperature on the 7-Segment */
     if (mode == ACTIVE) {
       Dis_7SEG (Decimal, Temperature_H, Temperature_L, IsPositive);  
+    } else {
+      Send7SEG(4, 0);
+      Send7SEG(3, 0);
+      Send7SEG(2, 0);
+      Send7SEG(1, 0);
     }
     
     if(digitalRead(pirPin) == HIGH){
@@ -239,7 +244,7 @@ void loop()
         }
         //digitalWrite(5, HIGH);
        }
-    delay (5000);        /* Take temperature read every 1 second */
+    delay (1000);        /* Take temperature read every 1 second */
   }
 } 
 

@@ -17,6 +17,7 @@
 
 char buffer[50];
 char big_buffer[10000];
+char user_mode;
 int fdusb;
 int last_motion;
 node* head;
@@ -43,7 +44,7 @@ void receive_data() {
     cfsetispeed(&options, 9600); // set input baud rate
     cfsetospeed(&options, 9600); // set output baud rate
     tcsetattr(fdusb, TCSANOW, &options); // set options
-    int temp_firstnewline, motion_firstnewline, temp_secondnewline, motion_secondnewline;
+    int temp_firstnewline, motion_firstnewline, temp_secondnewline, motion_secondnewline, mode_firstnewline;
     char temperature[50];
     char motion[50];
     while(1) {
@@ -54,6 +55,7 @@ void receive_data() {
             return;
         }
         if((bytes_read = read(fdusb, buffer, 20)) > 0) {
+            char arduino_mode;
             printf("Buffer: %s\n", buffer);
             buffer[bytes_read] = '\0';
             strcat(big_buffer, buffer);
@@ -61,6 +63,7 @@ void receive_data() {
             temp_secondnewline = -1;
             motion_firstnewline = -1;
             motion_secondnewline = -1;
+            mode_firstnewline = -1;
             for (i = 0; i < strlen(big_buffer); i++) {
                 if (temp_firstnewline == -1 && big_buffer[i] == 'T') {
                     temp_firstnewline = i;
@@ -83,21 +86,26 @@ void receive_data() {
                 }
             }
             
-            if (temp_secondnewline > 0 && motion_secondnewline > 0) {
+            for (i = 0; i < strlen(big_buffer); i++) {
+                if (mode_firstnewline == -1 && big_buffer[i] == 'S') {
+                    arduino_mode = big_buffer[i + 2];
+                    mode_firstnewline = i;
+                    break;
+                }
+            }
+            
+            if (temp_secondnewline > 0 && motion_secondnewline > 0 && mode_firstnewline > 0) {
                 big_buffer[temp_secondnewline] = '\0';
                 temp_firstnewline = temp_firstnewline + 2;
-                printf("Copying list...");
                 strncpy(temperature, &big_buffer[temp_firstnewline], 50);
-                printf("Adding to list");
-                head = add_to_list(head, atof(temperature));
+                head = add_to_list(head, atof(temperature), arduino_mode);
 
                 big_buffer[motion_secondnewline] = '\0';
                 motion_firstnewline = motion_firstnewline + 2;
-                printf("Copying list...");
                 strncpy(motion, &big_buffer[motion_firstnewline], 50);
-                printf("Adding to list");
                 last_motion = atoi(motion);
-                printf("%d", last_motion);
+                printf("%d\n", last_motion);
+                printf("%c\n", arduino_mode);
                 clear_big_buffer();
             }
         }
@@ -105,8 +113,13 @@ void receive_data() {
         printf("Buffer cleared!\n");
         print_list(head);
         head = trim_list(head);
+        int bytes_wrote;
+        if (last_motion > 10) {
+            bytes_wrote = write(fdusb, "M", strlen("M"));
+        } else if (last_motion == 1 ) {
+            bytes_wrote = write(fdusb, "M", strlen("M"));
+        }
     }
-    
 }
 
 int start_server(int PORT_NUMBER)
@@ -198,7 +211,7 @@ int start_server(int PORT_NUMBER)
         if (request[0] == 'G') {
             clear_big_buffer();
             char reply[200];
-            sprintf(reply, "{\n \"temp\": %f,\n \"high\": %f,\n \"average\": %f,\n \"low\": %f,\n   }\n", get_latest(head), get_high(head), get_average(head), get_low(head));
+            sprintf(reply, "{\n \"temp\": %f,\n \"high\": %f,\n \"average\": %f,\n \"low\": %f,\n \"lastmotion\": %d,\n  }\n", get_latest(head, user_mode), get_high(head, user_mode), get_average(head, user_mode), get_low(head, user_mode), last_motion);
             
             // 6. send: send the message over the socket
             // note that the second argument is a char*, and the third is the number of chars
@@ -246,6 +259,7 @@ int start_server(int PORT_NUMBER)
 
 int main(int argc, char *argv[])
 {
+    user_mode = 'C';
     // check the number of arguments
     if (argc != 2)
     {
