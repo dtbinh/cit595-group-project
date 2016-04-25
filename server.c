@@ -15,9 +15,10 @@
 #include "linkedlist.h"
 
 
-char buffer[20];
+char buffer[50];
 char big_buffer[10000];
 int fdusb;
+int last_motion;
 node* head;
 
 void clear_buffer() {
@@ -42,9 +43,9 @@ void receive_data() {
     cfsetispeed(&options, 9600); // set input baud rate
     cfsetospeed(&options, 9600); // set output baud rate
     tcsetattr(fdusb, TCSANOW, &options); // set options
-    int firstnewline;
-    int secondnewline;
+    int temp_firstnewline, motion_firstnewline, temp_secondnewline, motion_secondnewline;
     char temperature[50];
+    char motion[50];
     while(1) {
         //clear_buffer();
         int bytes_read;
@@ -56,25 +57,48 @@ void receive_data() {
             printf("Buffer: %s\n", buffer);
             buffer[bytes_read] = '\0';
             strcat(big_buffer, buffer);
-            firstnewline = -1;
-            secondnewline = -1;
+            temp_firstnewline = -1;
+            temp_secondnewline = -1;
+            motion_firstnewline = -1;
+            motion_secondnewline = -1;
             for (i = 0; i < strlen(big_buffer); i++) {
-                if (firstnewline == -1 && big_buffer[i] == 'T') {
-                    firstnewline = i;
-                    printf("Firstline: %d\n", firstnewline);
-                } else if (firstnewline >= 0 && big_buffer[i] == ';') {
-                    secondnewline = i;
-                    printf("Secondline: %d\n", secondnewline);
+                if (temp_firstnewline == -1 && big_buffer[i] == 'T') {
+                    temp_firstnewline = i;
+                    printf("Firstline: %d\n", temp_firstnewline);
+                } else if (temp_firstnewline >= 0 && big_buffer[i] == ';') {
+                    temp_secondnewline = i;
+                    printf("Secondline: %d\n", temp_secondnewline);
                     break;
                 }
             }
-            if (secondnewline > 0) {
-                big_buffer[secondnewline] = '\0';
-                firstnewline = firstnewline + 2;
+            
+            for (i = 0; i < strlen(big_buffer); i++) {
+                if (motion_firstnewline == -1 && big_buffer[i] == 'M') {
+                    motion_firstnewline = i;
+                    printf("Firstline: %d\n", motion_firstnewline);
+                } else if (motion_firstnewline >= 0 && big_buffer[i] == ';') {
+                    motion_secondnewline = i;
+                    printf("Secondline: %d\n", motion_secondnewline);
+                    break;
+                }
+            }
+            
+            if (temp_secondnewline > 0 && motion_secondnewline > 0) {
+                big_buffer[temp_secondnewline] = '\0';
+                temp_firstnewline = temp_firstnewline + 2;
                 printf("Copying list...");
-                strcpy(temperature, &big_buffer[firstnewline]);
+                strncpy(temperature, &big_buffer[temp_firstnewline], 50);
                 printf("Adding to list");
                 head = add_to_list(head, atof(temperature));
+
+                big_buffer[motion_secondnewline] = '\0';
+                motion_firstnewline = motion_firstnewline + 2;
+                printf("Copying list...");
+                strncpy(motion, &big_buffer[motion_firstnewline], 50);
+                printf("Adding to list");
+                last_motion = atoi(motion);
+                printf("%d", last_motion);
+                clear_big_buffer();
             }
         }
         clear_buffer();
