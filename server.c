@@ -22,6 +22,8 @@ int fdusb;
 int last_motion;
 node* head;
 
+double outside_temp;
+
 //clear the small buffer
 void clear_buffer() {
     int i;
@@ -218,13 +220,34 @@ int start_server(int PORT_NUMBER)
             // 6. send: send the message over the socket
             // note that the second argument is a char*, and the third is the number of chars
             int bytes_wrote = 0;
+            char* start_point;
             if (strstr(request, "STANDBY") != NULL) {
                 printf("Found a standby!");
                 bytes_wrote = write(fdusb, "M", 2);
             } else if (strstr(request, "MODE") != NULL) {
                 bytes_wrote = write(fdusb, "T", 2);
-            } else if (strstr(request, "OUTSIDETEMP")) {
+            } else if ((start_point = strstr(request, "OUTSIDE TEMP")) != NULL) {
+                char latest_temp[10] = "";
+                for (int i = 0; i < strlen(start_point); i++) {
+                    if (start_point[i] <= '9' && start_point[i] >= '0') {
+                        strncpy(latest_temp, &start_point[i], 10);
+                        outside_temp = atof(latest_temp);
+                        double last_read_temp = get_latest(head, 'C');
+                        char difference[5];
+                        if (outside_temp - last_read_temp > 2) {
+                            difference[0] = 'H';
+                        } else if (outside_temp - last_read_temp < -2) {
+                            difference[0] = 'C';
+                        } else {
+                            difference[0] = 'N';
+                        }
+                        difference[1] = '\0';
+                        bytes_wrote = write(fdusb, difference, strlen(difference));
+                        break;
+                    }
+                }
                 printf("Outside temp message!");
+                
             }
             
             printf("%d\n", bytes_wrote);

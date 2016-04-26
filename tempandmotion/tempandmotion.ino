@@ -201,11 +201,7 @@ void loop()
          
        }
 
-     if(digitalRead(pirPin) == LOW){       
-       digitalWrite(ledPin, LOW);  //the led visualizes the sensors output pin state
-       digitalWrite(3, LOW);
-       digitalWrite(5, LOW);
-
+     if(digitalRead(pirPin) == LOW){     
        if(takeLowTime){
         lowIn = millis();          //save the time of the transition from high to LOW
         takeLowTime = false;       //make sure this is only done at the start of a LOW phase
@@ -240,6 +236,8 @@ void loop()
             } else {
               state = 'C';
             }
+          } else if ((char) read_byte == 'C' || (char) read_byte == 'H' || (char) read_byte == 'N') {
+            UpdateRGB((char)read_byte);
           }
         }
         //digitalWrite(5, HIGH);
@@ -382,17 +380,17 @@ void Send7SEG (byte Digit, byte Number)
    Update RGB LED according to define HOT and COLD temperature. 
 ****************************************************************************/
 
-void UpdateRGB (byte Temperature_H)
+void UpdateRGB (char result)
 {
   digitalWrite(RED, LOW);
   digitalWrite(GREEN, LOW);
   digitalWrite(BLUE, LOW);        /* Turn off all LEDs. */
   
-  if (Temperature_H <= COLD)
+  if (result == 'C')
   {
     digitalWrite(BLUE, HIGH);
   }
-  else if (Temperature_H >= HOT)
+  else if (result == 'H')
   {
     digitalWrite(RED, HIGH);
   }
