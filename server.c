@@ -17,11 +17,12 @@
 
 char buffer[50];
 char big_buffer[10000];
-char user_mode;
+char arduino_mode;
 int fdusb;
 int last_motion;
 node* head;
 
+//clear the small buffer
 void clear_buffer() {
     int i;
     for (i = 0; i < 20; i++) {
@@ -29,6 +30,7 @@ void clear_buffer() {
     }
 }
 
+//clear the big buffer
 void clear_big_buffer() {
     int i;
     for (i = 0; i < 10000; i++) {
@@ -37,6 +39,7 @@ void clear_big_buffer() {
 }
 
 void receive_data() {
+    //open the usb port and set the options
     fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
     int i;
     struct termios options; // struct to hold options
@@ -44,19 +47,21 @@ void receive_data() {
     cfsetispeed(&options, 9600); // set input baud rate
     cfsetospeed(&options, 9600); // set output baud rate
     tcsetattr(fdusb, TCSANOW, &options); // set options
+    
+    //set up marker and buffers for the readings
     int temp_firstnewline, motion_firstnewline, temp_secondnewline, motion_secondnewline, mode_firstnewline;
     char temperature[50];
     char motion[50];
+    //loop and read from the arduino
     while(1) {
-        //clear_buffer();
         int bytes_read;
         if (fdusb == -1) {
             printf("We messed up\n");
             return;
         }
+        //if bytes are read, add to big buffer, and loop to see if we have a full message
         if((bytes_read = read(fdusb, buffer, 20)) > 0) {
             char arduino_mode;
-            printf("Buffer: %s\n", buffer);
             buffer[bytes_read] = '\0';
             strcat(big_buffer, buffer);
             temp_firstnewline = -1;
@@ -67,10 +72,8 @@ void receive_data() {
             for (i = 0; i < strlen(big_buffer); i++) {
                 if (temp_firstnewline == -1 && big_buffer[i] == 'T') {
                     temp_firstnewline = i;
-                    printf("Firstline: %d\n", temp_firstnewline);
                 } else if (temp_firstnewline >= 0 && big_buffer[i] == ';') {
                     temp_secondnewline = i;
-                    printf("Secondline: %d\n", temp_secondnewline);
                     break;
                 }
             }
@@ -78,10 +81,8 @@ void receive_data() {
             for (i = 0; i < strlen(big_buffer); i++) {
                 if (motion_firstnewline == -1 && big_buffer[i] == 'M') {
                     motion_firstnewline = i;
-                    printf("Firstline: %d\n", motion_firstnewline);
                 } else if (motion_firstnewline >= 0 && big_buffer[i] == ';') {
                     motion_secondnewline = i;
-                    printf("Secondline: %d\n", motion_secondnewline);
                     break;
                 }
             }
@@ -93,7 +94,7 @@ void receive_data() {
                     break;
                 }
             }
-            
+            //if all fields are available, update the variables and add a node
             if (temp_secondnewline > 0 && motion_secondnewline > 0 && mode_firstnewline > 0) {
                 big_buffer[temp_secondnewline] = '\0';
                 temp_firstnewline = temp_firstnewline + 2;
@@ -104,13 +105,11 @@ void receive_data() {
                 motion_firstnewline = motion_firstnewline + 2;
                 strncpy(motion, &big_buffer[motion_firstnewline], 50);
                 last_motion = atoi(motion);
-                printf("%d\n", last_motion);
-                printf("%c\n", arduino_mode);
                 clear_big_buffer();
             }
         }
+        //clear the buffer
         clear_buffer();
-        printf("Buffer cleared!\n");
         print_list(head);
         head = trim_list(head);
         int bytes_wrote;
@@ -209,9 +208,8 @@ int start_server(int PORT_NUMBER)
         
         
         if (request[0] == 'G') {
-            clear_big_buffer();
             char reply[200];
-            sprintf(reply, "{\n \"temp\": %f,\n \"high\": %f,\n \"average\": %f,\n \"low\": %f,\n \"lastmotion\": %d,\n  }\n", get_latest(head, user_mode), get_high(head, user_mode), get_average(head, user_mode), get_low(head, user_mode), last_motion);
+            sprintf(reply, "{\n \"temp\": %f,\n \"high\": %f,\n \"average\": %f,\n \"low\": %f,\n \"lastmotion\": %d,\n  }\n", get_latest(head, arduino_mode), get_high(head, arduino_mode), get_average(head, arduino_mode), get_low(head, arduino_mode), last_motion);
             
             // 6. send: send the message over the socket
             // note that the second argument is a char*, and the third is the number of chars
@@ -225,12 +223,13 @@ int start_server(int PORT_NUMBER)
         } else if (request[0] == 'P') {
             // 6. send: send the message over the socket
             // note that the second argument is a char*, and the third is the number of chars
-            
-            
-            int bytes_read;
             int bytes_wrote;
+            if (strstr(request, "standby") == NULL) {
+                bytes_wrote = write(fdusb, 'M', 1);
+            } else if (strstr(request, "standby") == NULL) {
+                bytes_wrote = write(fdusb, 'T', 1);
+            }
             
-            bytes_wrote = write(fdusb, "Hello!", strlen("Hello!"));
             printf("%d\n", bytes_wrote);
             // 7. close: close the socket connection
             bytes_received =send(fd, request, strlen(request), 0);
@@ -259,7 +258,7 @@ int start_server(int PORT_NUMBER)
 
 int main(int argc, char *argv[])
 {
-    user_mode = 'C';
+    arduino_mode = 'C';
     // check the number of arguments
     if (argc != 2)
     {

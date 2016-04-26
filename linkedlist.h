@@ -184,7 +184,7 @@ node* trim_list(node* head_node) {
 	if (head_node == NULL) {
 		return NULL;
 	}
-	while((current_time - head_node->addtime) > 10) {
+	while((current_time - head_node->addtime) > 3600) {
 		node* current = head_node->next;
 		free(head_node);
 		head_node = current;
