@@ -17,7 +17,6 @@ function checkPayload(e){
     if(key === '0'){
       checkConnect();
       setTimeout(getCity, 1500);
-//        setTimeout(checkConnect, 2000);
       setTimeout(sendToServer, 3000);
     } else if(key === '1'){
        sendStandBy();
@@ -33,17 +32,24 @@ function getFromServer(){
     var url = "http://" + ipAddress + ":" + port + "/";
     var method = "GET";
     var async = true;
-      Pebble.sendAppMessage({ "0": 'Getting temperature...' });
+    Pebble.sendAppMessage({ "0": 'Getting temperature...' });
 
 //   GET REQUEST BELOW
 //     req.onprogress = function () {
+      
 //       console.log('readystate: ' + req.readyState);
 //       console.log('status: ' + req.status);
 // //       var response = JSON.parse(req.responseText);
 // //       console.log(JSON.stringify(response));
 
 //     };
+    req.open(method, url, async);
+    console.log('here!');
+    console.log('readystate: ' + req.readyState);
+    console.log('status: ' + req.status);
+  
     req.onload = function(e) {
+      console.log('in onload!');
       // see what came back
       var msg = "no response";
   
@@ -67,9 +73,8 @@ function getFromServer(){
         }
 
     };
-    req.open(method, url, async);
     req.send(null);
-    req.close();
+//     req.close();
   
 }
 
@@ -79,17 +84,17 @@ function sendStandBy(){
     var ipAddress = "158.130.110.173"; // Hard coded IP address
     var port = "3001"; // Same port specified as argument to server
     var url = "http://" + ipAddress + ":" + port + "/";
-    var method = "GET";
+//     var method = "GET";
     var sendStuff = "POST";
     var async = true;
     var standby = 'STANDBY';
 
     req.open(sendStuff, url, async);
-    
-    console.log(req.status);
+    console.log('readystate: ' + req.readyState);
+    console.log('status: ' + req.status);
     console.log(standby);
     req.send(standby);
-    req.close();
+//     req.close();
 //     console.log('current temp is ' + temp);
 //     req.onload = function(e) {
 //       // see what came back
@@ -152,7 +157,8 @@ function getCity(){
 //   req.addEventListener("abort", transferCanceled);
   req.open('GET', 'http://api.openweathermap.org/data/2.5/weather?' +
   'lat=' + 39.98 + '&lon=' + -75.19  + '&cnt=1&appid=' + key, true);
-
+  console.log('readystate: ' + req.readyState);
+  console.log('status: ' + req.status);
   req.onload = function(e) {
 //      console.log("in onload");
     msg = "failed";
@@ -176,7 +182,7 @@ function getCity(){
     Pebble.sendAppMessage({ "0": msg });
   };
   req.send(null);
-  req.close();
+//   req.close();
 
 //   if(sendS === true){
 //     setTimeout(sendToServer(celsius), 3000);
