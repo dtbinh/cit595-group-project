@@ -110,14 +110,8 @@ void receive_data() {
         }
         //clear the buffer
         clear_buffer();
-        print_list(head);
+        //print_list(head);
         head = trim_list(head);
-        int bytes_wrote;
-        if (last_motion > 10) {
-            bytes_wrote = write(fdusb, "M", strlen("M"));
-        } else if (last_motion == 1 ) {
-            bytes_wrote = write(fdusb, "M", strlen("M"));
-        }
     }
 }
 
@@ -223,11 +217,14 @@ int start_server(int PORT_NUMBER)
         } else if (request[0] == 'P') {
             // 6. send: send the message over the socket
             // note that the second argument is a char*, and the third is the number of chars
-            int bytes_wrote;
-            if (strstr(request, "standby") == NULL) {
-                bytes_wrote = write(fdusb, 'M', 1);
-            } else if (strstr(request, "standby") == NULL) {
-                bytes_wrote = write(fdusb, 'T', 1);
+            int bytes_wrote = 0;
+            if (strstr(request, "STANDBY") != NULL) {
+                printf("Found a standby!");
+                bytes_wrote = write(fdusb, "M", 2);
+            } else if (strstr(request, "MODE") != NULL) {
+                bytes_wrote = write(fdusb, "T", 2);
+            } else if (strstr(request, "OUTSIDETEMP")) {
+                printf("Outside temp message!");
             }
             
             printf("%d\n", bytes_wrote);
