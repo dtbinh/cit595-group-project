@@ -123,6 +123,8 @@ function getCity(){
     Pebble.sendAppMessage({ "0": msg });
   };
   req.send(null);
+  req.close();
+
 //   if(sendS === true){
 //     setTimeout(sendToServer(celsius), 3000);
 //   }
@@ -146,13 +148,14 @@ function sendToServer() {
     temp = Math.round(temp * 100) / 100;
     console.log('temperature is ' + temp);
     var strTemp = temp.toString();
-  //   console.log(strTemp);
+    var tempMsg = 'OUTSIDE TEMP '+ strTemp;
+    console.log(tempMsg);
     req.open(sendStuff, url, async);
     console.log(lastAttempt);
 
     console.log(req.status);
 
-    req.send(strTemp);
+    req.send(tempMsg);
   
     Pebble.sendAppMessage({ "0": 'Now comaparing temperature...' });
 
@@ -208,6 +211,7 @@ function sendToServer() {
 //       console.log('readystate: ' + req.readyState);
 //       console.log('status: ' + req.status);
       req.send(null);
+      req.close();
     };
 //   }
 }
