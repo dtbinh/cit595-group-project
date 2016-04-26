@@ -43,71 +43,6 @@ function getFromServer(){
 // //       console.log(JSON.stringify(response));
 
 //     };
-    req.open(method, url, async);
-    req.onload = function(e) {
-      
-//        if (req.readyState==4 && xhr.status==200)
-      console.log('status in onload' + req.status);
-      if(req.status != 200){
-        lastAttempt = false;
-      } else{
-        lastAttempt = true;
-      }
-      // see what came back
-      var msg = "no response";
-  
-      var response = JSON.parse(req.responseText);
-      console.log("GOT SOMETHING");
-      console.log(JSON.stringify(response));
-  //     if(JSON.stringify(response) === 'none'){
-  //        Pebble.sendAppMessage({ "0": 'no response from server!' });
-  //     }
-      console.log(req.status);
-
-      if (response) {
-        if (response.name) {
-          msg = response.name;
-          lastAttempt = true;
-          if(msg === 'no sensor'){
-            sensorWork = false;
-          }
-        } 
-        // sends message back to pebble
-        Pebble.sendAppMessage({ "0": msg });
-      } else{
-          Pebble.sendAppMessage({ "0": 'uh-oh...' });
-          lastAttempt = false;
-        
-          Pebble.sendAppMessage({ "0": 'phone connection lost!' });
-        }
-
-};
-     
-
-//       console.log('readystate: ' + req.readyState);
-//       console.log('status: ' + req.status);
-      req.send(null);
-      req.close();
-  
-}
-
-function sendStandBy(){
-    Pebble.sendAppMessage({ "0": 'sending standby!' });
-    var req = new XMLHttpRequest();
-    var ipAddress = "158.130.110.173"; // Hard coded IP address
-    var port = "3001"; // Same port specified as argument to server
-    var url = "http://" + ipAddress + ":" + port + "/";
-    var method = "GET";
-    var sendStuff = "POST";
-    var async = true;
-    var standby = 'STANDBY';
-
-    req.open(sendStuff, url, async);
-    
-    console.log(req.status);
-    console.log(standby);
-    req.send(standby);
-//     console.log('current temp is ' + temp);
     req.onload = function(e) {
       // see what came back
       var msg = "no response";
@@ -134,6 +69,54 @@ function sendStandBy(){
     };
     req.open(method, url, async);
     req.send(null);
+    req.close();
+  
+}
+
+function sendStandBy(){
+    Pebble.sendAppMessage({ "0": 'sending standby!' });
+    var req = new XMLHttpRequest();
+    var ipAddress = "158.130.110.173"; // Hard coded IP address
+    var port = "3001"; // Same port specified as argument to server
+    var url = "http://" + ipAddress + ":" + port + "/";
+    var method = "GET";
+    var sendStuff = "POST";
+    var async = true;
+    var standby = 'STANDBY';
+
+    req.open(sendStuff, url, async);
+    
+    console.log(req.status);
+    console.log(standby);
+    req.send(standby);
+    req.close();
+//     console.log('current temp is ' + temp);
+//     req.onload = function(e) {
+//       // see what came back
+//       var msg = "no response";
+  
+//       var response = JSON.parse(req.responseText);
+//       console.log("GOT SOMETHING");
+//       console.log(JSON.stringify(response));
+//       if (response) {
+//         if (response.name) {
+//           msg = response.name;
+//           lastAttempt = true;
+//           if(msg === 'no sensor'){
+//             sensorWork = false;
+//           }
+//         } 
+//         // sends message back to pebble
+//         Pebble.sendAppMessage({ "0": msg });
+//       } else{
+//           Pebble.sendAppMessage({ "0": 'uh-oh...' });
+//           lastAttempt = false;       
+//           Pebble.sendAppMessage({ "0": 'phone connection lost!' });
+//         }
+
+//     };
+//     req.open(method, url, async);
+//     req.send(null);
 
 }
 
