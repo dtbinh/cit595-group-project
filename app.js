@@ -62,17 +62,28 @@ function getFromServer(){
           lastAttempt = true;
           if(msg === 'no sensor'){
             sensorWork = false;
+          } else{
+            sensorWork = true;
           }
         } 
         // sends message back to pebble
         Pebble.sendAppMessage({ "0": msg });
-      } else{
-          Pebble.sendAppMessage({ "0": 'uh-oh...' });
-          lastAttempt = false;       
-          Pebble.sendAppMessage({ "0": 'phone connection lost!' });
-        }
+      } 
+//       else{
+//           Pebble.sendAppMessage({ "0": 'uh-oh...' });
+//           lastAttempt = false;       
+//           Pebble.sendAppMessage({ "0": 'phone connection lost!' });
+//         }
 
     };
+  
+    setTimeout(function(){
+      if(req.readyState === 1){
+        lastAttempt = false;
+        Pebble.sendAppMessage({ "0": 'Server Connection Failed!' });
+        req.abort();
+      }
+    }, 3000);
     req.send(null);
 //     req.close();
   
@@ -94,6 +105,7 @@ function sendStandBy(){
     console.log('status: ' + req.status);
     console.log(standby);
     req.send(standby);
+    console.log('status after: ' + req.status);
 //     req.close();
 //     console.log('current temp is ' + temp);
 //     req.onload = function(e) {
@@ -126,15 +138,12 @@ function sendStandBy(){
 }
 
 function checkConnect(){
-  var msg1;
-  var msg2;
+ 
   if(lastAttempt === false){
-    msg1 = 'What happed to your phone?';
-      Pebble.sendAppMessage({ "0": msg1 });
+      Pebble.sendAppMessage({ "0": 'What happed to the server?' });
   }
   if(sensorWork === false){
-    msg2 = 'Check your sensor!';
-      Pebble.sendAppMessage({ "0": msg2 });
+      Pebble.sendAppMessage({ "0": 'Check your sensor!' });
   }
   if(lastAttempt === true && sensorWork === true){
     Pebble.sendAppMessage({ "0": 'All is well!' });
@@ -165,6 +174,7 @@ function getCity(){
     var response = JSON.parse(req.responseText);
     console.log("returned something!");
     if (response) {
+      lastAttempt = true;
       if (response.name) {
         msg = response.name + ": " + response.weather[0].description;
         temp = response.main.temp;
@@ -184,9 +194,6 @@ function getCity(){
   req.send(null);
 //   req.close();
 
-//   if(sendS === true){
-//     setTimeout(sendToServer(celsius), 3000);
-//   }
   
 
 }
@@ -200,10 +207,8 @@ function sendToServer() {
     var url = "http://" + ipAddress + ":" + port + "/";
     var sendStuff = "POST";
     var async = true;
-  
     var temp = celsius;
     console.log('C is '+celsius);
-//     var temp = getCity();
     temp = Math.round(temp * 100) / 100;
     console.log('temperature is ' + temp);
     var strTemp = temp.toString();
@@ -211,12 +216,17 @@ function sendToServer() {
     console.log(tempMsg);
     req.open(sendStuff, url, async);
     console.log(lastAttempt);
-
     console.log(req.status);
 
     req.send(tempMsg);
 //     req.close();
-  
+    setTimeout(function(){
+      if(req.readyState === 1){
+        lastAttempt = false;
+        Pebble.sendAppMessage({ "0": 'Server Connection Failed!' });
+        req.abort();
+      }
+    }, 4000);
 
  
 //   }

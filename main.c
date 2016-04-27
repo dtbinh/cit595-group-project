@@ -16,6 +16,19 @@ void down_click_handler(ClickRecognizerRef recognizer, void *context) {
  app_message_outbox_send();
 }
 
+/* This is called when the top button is clicked */
+void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  text_layer_set_text(hello_layer, "GET!"); 
+  DictionaryIterator *iter;
+  app_message_outbox_begin(&iter);
+  int key = 2;
+  
+ // send the message "standby" to the phone, using key #2
+ Tuplet value = TupletCString(key, "GET");
+ dict_write_tuplet(iter, &value);
+ app_message_outbox_send();
+}
+
 
 void out_sent_handler(DictionaryIterator *sent, void *context) {
  // outgoing message was delivered -- do nothing
@@ -86,6 +99,7 @@ void config_provider(void *context) {
                                last_click_only, select_click_handler);
   
   window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+  window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
 }
 
 
