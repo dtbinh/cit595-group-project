@@ -63,7 +63,6 @@ void receive_data() {
         }
         //if bytes are read, add to big buffer, and loop to see if we have a full message
         if((bytes_read = read(fdusb, buffer, 20)) > 0) {
-            char arduino_mode;
             buffer[bytes_read] = '\0';
             strcat(big_buffer, buffer);
             temp_firstnewline = -1;
@@ -113,6 +112,7 @@ void receive_data() {
         //clear the buffer
         clear_buffer();
         //print_list(head);
+        //printf("-----------\n");
         head = trim_list(head);
     }
 }
@@ -205,7 +205,8 @@ int start_server(int PORT_NUMBER)
         
         if (request[0] == 'G') {
             char reply[200];
-            sprintf(reply, "{\n \"temp\": %f,\n \"high\": %f,\n \"average\": %f,\n \"low\": %f,\n \"lastmotion\": %d,\n  }\n", get_latest(head, arduino_mode), get_high(head, arduino_mode), get_average(head, arduino_mode), get_low(head, arduino_mode), last_motion);
+            printf("%c", arduino_mode);
+            sprintf(reply, "{\n \"temp\": \"%f\",\n \"high\": \"%f\",\n \"average\": \"%f\",\n \"low\": \"%f\",\n \"lastmotion\": \"%d\"\n  }\n", get_latest(head, arduino_mode), get_high(head, arduino_mode), get_average(head, arduino_mode), get_low(head, arduino_mode), last_motion);
             
             // 6. send: send the message over the socket
             // note that the second argument is a char*, and the third is the number of chars
