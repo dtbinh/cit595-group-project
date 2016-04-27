@@ -1,14 +1,15 @@
 var lastAttempt = true;
 var sensorWork = true;
+var standbymode = false;
 var celsius = 0;
 
 Pebble.addEventListener("appmessage",
                         function(e) {
-                        console.log(JSON.stringify(e));
-                        checkPayload(e);
+                          console.log(JSON.stringify(e));
+                          checkPayload(e);
                         
                         }
-                        );
+                       );
 
 function checkPayload(e){
     for (var key in e.payload) break;
@@ -60,9 +61,19 @@ function getFromServer(){
         if (response) {
             console.log(response.temp);
             //         if (response.temp) {
-            var msg = response.temp;
+            var temperature = response.temp;
+            var high = response.high;
+            var low = response.low;
+            var average = response.average;
+            var lastmotion = response.lastmotion;
+            var arduino = response.arduino;
             lastAttempt = true;
-            Pebble.sendAppMessage({ "0": msg });
+            if(arduino === 'no'){
+              sensorWork = false;
+            } else{
+              sensorWork = true;
+            }
+          Pebble.sendAppMessage({ "0": 'Temp: '+ temperature + 'Hi: ' + high + 'Low: ' + low + 'Average: ' + average + 'LastMot: ' + lastmotion });
             
             //         }
             // sends message back to pebble
@@ -89,7 +100,14 @@ function getFromServer(){
 }
 
 function sendStandBy(){
-    Pebble.sendAppMessage({ "0": 'sending standby!' });
+  
+    if(standby !== true){
+      Pebble.sendAppMessage({ "0": 'sending standby!' });
+      standbymode = true;
+    } else{
+      Pebble.sendAppMessage({ "0": 'resuming activity!' });
+      standbymode = false;
+    }
     var req = new XMLHttpRequest();
     var ipAddress = "158.130.104.68"; // Hard coded IP address
     var port = "3001"; // Same port specified as argument to server
@@ -105,34 +123,7 @@ function sendStandBy(){
     console.log(standby);
     req.send(standby);
     console.log('status after: ' + req.status);
-    //     req.close();
-    //     console.log('current temp is ' + temp);
-    //     req.onload = function(e) {
-    //       // see what came back
-    //       var msg = "no response";
-    
-    //       var response = JSON.parse(req.responseText);
-    //       console.log("GOT SOMETHING");
-    //       console.log(JSON.stringify(response));
-    //       if (response) {
-    //         if (response.name) {
-    //           msg = response.name;
-    //           lastAttempt = true;
-    //           if(msg === 'no sensor'){
-    //             sensorWork = false;
-    //           }
-    //         }
-    //         // sends message back to pebble
-    //         Pebble.sendAppMessage({ "0": msg });
-    //       } else{
-    //           Pebble.sendAppMessage({ "0": 'uh-oh...' });
-    //           lastAttempt = false;
-    //           Pebble.sendAppMessage({ "0": 'phone connection lost!' });
-    //         }
-    
-    //     };
-    //     req.open(method, url, async);
-    //     req.send(null);
+
     
 }
 
