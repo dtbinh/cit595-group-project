@@ -206,7 +206,7 @@ int start_server(int PORT_NUMBER)
         if (request[0] == 'G') {
             char reply[200];
             printf("%c", arduino_mode);
-            sprintf(reply, "{\n \"temp\": \"%f\",\n \"high\": \"%f\",\n \"average\": \"%f\",\n \"low\": \"%f\",\n \"lastmotion\": \"%d\"\n  }\n", get_latest(head, arduino_mode), get_high(head, arduino_mode), get_average(head, arduino_mode), get_low(head, arduino_mode), last_motion);
+            sprintf(reply, "{\n \"temp\": \"%f%c\",\n \"high\": \"%f%c\",\n \"average\": \"%f%c\",\n \"low\": \"%f%c\",\n \"lastmotion\": \"%d\"\n  }\n", get_latest(head, arduino_mode), arduino_mode, get_high(head, arduino_mode), arduino_mode, get_average(head, arduino_mode), arduino_mode, get_low(head, arduino_mode), arduino_mode, last_motion);
             
             // 6. send: send the message over the socket
             // note that the second argument is a char*, and the third is the number of chars
