@@ -61,8 +61,7 @@ void receive_data() {
     while(1) {
         int bytes_read;
         if (fdusb == -1) {
-            printf("We messed up\n");
-            return;
+            printf("Arduino not connected\n");
         }
         //if bytes are read, add to big buffer, and loop to see if we have a full message
         if((bytes_read = read(fdusb, buffer, 20)) > 0) {

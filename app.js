@@ -5,11 +5,11 @@ var celsius = 0;
 
 Pebble.addEventListener("appmessage",
                         function(e) {
-                          console.log(JSON.stringify(e));
-                          checkPayload(e);
+                        console.log(JSON.stringify(e));
+                        checkPayload(e);
                         
                         }
-                       );
+                        );
 
 function checkPayload(e){
     for (var key in e.payload) break;
@@ -62,18 +62,25 @@ function getFromServer(){
             console.log(response.temp);
             //         if (response.temp) {
             var temperature = response.temp;
+            console.log(temperature);
             var high = response.high;
+            console.log(high);
             var low = response.low;
+            console.log(low);
             var average = response.average;
+            console.log(average);
             var lastmotion = response.lastmotion;
+            console.log(lastmotion);
             var arduino = response.arduino;
+            console.log(arduino);
             lastAttempt = true;
             if(arduino === 'no'){
-              sensorWork = false;
+                sensorWork = false;
             } else{
-              sensorWork = true;
+                sensorWork = true;
             }
-          Pebble.sendAppMessage({ "0": 'Temp: '+ temperature + 'Hi: ' + high + 'Low: ' + low + 'Average: ' + average + 'LastMot: ' + lastmotion });
+            //           Pebble.sendAppMessage({ "0": 'Temp: '+ temperature + 'Hi: ' + high + 'Low: ' + low + 'Average: ' + average + 'LastMot: ' + lastmotion });
+            Pebble.sendAppMessage({ "0": 'Temp: '+ temperature + '\nHi: ' + high + '\nLow: ' + low  + '\nAverage: ' + average + '\nLast Motion: ' + lastmotion + " sec"});
             
             //         }
             // sends message back to pebble
@@ -100,13 +107,13 @@ function getFromServer(){
 }
 
 function sendStandBy(){
-  
-    if(standby !== true){
-      Pebble.sendAppMessage({ "0": 'sending standby!' });
-      standbymode = true;
+    
+    if(standbymode !== true){
+        Pebble.sendAppMessage({ "0": 'sending standby!' });
+        standbymode = true;
     } else{
-      Pebble.sendAppMessage({ "0": 'resuming activity!' });
-      standbymode = false;
+        Pebble.sendAppMessage({ "0": 'resuming activity!' });
+        standbymode = false;
     }
     var req = new XMLHttpRequest();
     var ipAddress = "158.130.104.68"; // Hard coded IP address
@@ -123,7 +130,7 @@ function sendStandBy(){
     console.log(standby);
     req.send(standby);
     console.log('status after: ' + req.status);
-
+    
     
 }
 
