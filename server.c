@@ -20,9 +20,12 @@ char big_buffer[10000];
 char arduino_mode;
 int fdusb;
 int last_motion;
+int testing;
+int arduino_ok;
 node* head;
 
-double outside_temp;
+char* yes = "yes";
+char* no = "no";
 
 //clear the small buffer
 void clear_buffer() {
@@ -63,6 +66,7 @@ void receive_data() {
         }
         //if bytes are read, add to big buffer, and loop to see if we have a full message
         if((bytes_read = read(fdusb, buffer, 20)) > 0) {
+            arduino_ok = 0;
             buffer[bytes_read] = '\0';
             strcat(big_buffer, buffer);
             temp_firstnewline = -1;
@@ -108,6 +112,8 @@ void receive_data() {
                 last_motion = atoi(motion);
                 clear_big_buffer();
             }
+        } else if (bytes_read == -1) {
+            arduino_ok = -1;
         }
         //clear the buffer
         clear_buffer();
@@ -168,7 +174,7 @@ int start_server(int PORT_NUMBER)
         printf("Error in thread creation\n");
         return -1;
     }
-    
+    double outside_temp;
     while(1) {
         printf("Waiting...\n");
         fd = accept(sock, (struct sockaddr *)&client_addr,(socklen_t *)&sin_size);
@@ -206,7 +212,13 @@ int start_server(int PORT_NUMBER)
         if (request[0] == 'G') {
             char reply[200];
             printf("%c", arduino_mode);
-            sprintf(reply, "{\n \"temp\": \"%f%c\",\n \"high\": \"%f%c\",\n \"average\": \"%f%c\",\n \"low\": \"%f%c\",\n \"lastmotion\": \"%d\"\n  }\n", get_latest(head, arduino_mode), arduino_mode, get_high(head, arduino_mode), arduino_mode, get_average(head, arduino_mode), arduino_mode, get_low(head, arduino_mode), arduino_mode, last_motion);
+            char* how_is_arduino;
+            if (arduino_ok == 0) {
+                how_is_arduino = yes;
+            } else if (arduino_ok == -1) {
+                how_is_arduino = no;
+            }
+            sprintf(reply, "{\n \"temp\": \"%f%c\",\n \"high\": \"%f%c\",\n \"average\": \"%f%c\",\n \"low\": \"%f%c\",\n \"lastmotion\": \"%d\",\n \"arduino\": \"%s\"  }\n", get_latest(head, arduino_mode), arduino_mode, get_high(head, arduino_mode), arduino_mode, get_average(head, arduino_mode), arduino_mode, get_low(head, arduino_mode), arduino_mode, last_motion, how_is_arduino);
             
             // 6. send: send the message over the socket
             // note that the second argument is a char*, and the third is the number of chars
@@ -227,7 +239,7 @@ int start_server(int PORT_NUMBER)
                 bytes_wrote = write(fdusb, "M", 2);
             } else if (strstr(request, "MODE") != NULL) {
                 bytes_wrote = write(fdusb, "T", 2);
-            } else if ((start_point = strstr(request, "OUTSIDE TEMP")) != NULL) {
+            } else if ((start_point = strstr(request, "OUTSIDE TEMP")) != NULL && testing == 0) {
                 char latest_temp[10] = "";
                 for (int i = 0; i < strlen(start_point); i++) {
                     if (start_point[i] <= '9' && start_point[i] >= '0') {
@@ -249,6 +261,20 @@ int start_server(int PORT_NUMBER)
                 }
                 printf("Outside temp message!");
                 
+            } else if ((start_point = strstr(request, "OUTSIDE TEMP")) != NULL && testing == 1) {
+                char difference[5];
+                double last_read_temp = get_latest(head, 'C');
+                float fake_temp;
+                scanf("%f", &fake_temp);
+                if (fake_temp - last_read_temp > 2) {
+                    difference[0] = 'H';
+                } else if (fake_temp - last_read_temp < -2) {
+                    difference[0] = 'C';
+                } else {
+                    difference[0] = 'N';
+                }
+                difference[1] = '\0';
+                bytes_wrote = write(fdusb, difference, strlen(difference));
             }
             
             printf("%d\n", bytes_wrote);
@@ -281,10 +307,15 @@ int main(int argc, char *argv[])
 {
     arduino_mode = 'C';
     // check the number of arguments
-    if (argc != 2)
+    if (argc != 2 && argc != 3)
     {
         printf("\nUsage: server [port_number]\n");
         exit(0);
+    }
+    if (argc == 2) {
+        testing = 0;
+    } else if (argc == 3) {
+        testing = 1;
     }
     
     int PORT_NUMBER = atoi(argv[1]);
