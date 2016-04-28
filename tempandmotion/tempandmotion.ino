@@ -11,10 +11,18 @@
  Hardware: Arduino Diecimila with 7-SEG Shield
 
  Description:
-   This program reads I2C data from digital thermometer and display it on 7-Segment
+   This program reads I2C data from digital thermometer and display it on 7-Segment,
+   and converts from farenheit to ceclius, and sense and deliver motion information.
 
  Change History:
    03 February 2008, Gravitech - Created
+
+Motion code based from:
+http://playground.arduino.cc/Code/PIRsense
+Credit to: 
+@author: Kristian Gohlke / krigoo (_) gmail (_) com / http://krx.at
+@date:   3. September 2006 
+kr1 (cleft) 2006 
 
 ****************************************************************************/
 
@@ -27,10 +35,6 @@
 #define RED (3)        /* Red color pin of RGB LED */
 #define GREEN (5)      /* Green color pin of RGB LED */
 #define BLUE (6)       /* Blue color pin of RGB LED */
-
-#define COLD (23)      /* Cold temperature, drive blue LED (23c) */
-#define HOT (26)       /* Hot temperature, drive red LED (27c) */
-
 #define STANDBY (1)
 #define ACTIVE (0)
 
@@ -83,20 +87,7 @@ void setup()
   pinMode(ledPin, OUTPUT);
   pinMode(3, OUTPUT);
   pinMode(5, OUTPUT);
-  digitalWrite(pirPin, LOW);
-
-  //give the sensor some time to calibrate
-  /*
-  Serial.print("calibrating sensor ");
-    for(int i = 0; i < calibrationTime; i++){
-      Serial.print(".");
-      delay(1000);
-      }
-    Serial.println(" done");
-    Serial.println("SENSOR ACTIVE");
-    delay(50);
-    */
-    
+  digitalWrite(pirPin, LOW);    
 } 
 
 /***************************************************************************
@@ -179,9 +170,6 @@ void loop()
     }
     
     if(digitalRead(pirPin) == HIGH){
-       //digitalWrite(ledPin, HIGH);   //the led visualizes the sensors output pin state
-       //digitalWrite(3, HIGH);
-       //digitalWrite(5, HIGH);
        if(lockLow){
         if (state == 'C') {
           state = 'F';
@@ -190,11 +178,7 @@ void loop()
          }  
          //makes sure we wait for a transition to LOW before any further output is made:
          lockLow = false;            
-         //Serial.println("---");
-         //Serial.print("motion detected at ");
          last_movement = millis();
-         //Serial.print(last_movement/1000);
-         //Serial.println(" sec"); 
          delay(50);
          }         
          takeLowTime = true;
@@ -212,14 +196,9 @@ void loop()
            //makes sure this block of code is only executed again after 
            //a new motion sequence has been detected
            lockLow = true;                        
-           //Serial.print("motion ended at ");      //output
-           //Serial.print((millis() - pause)/1000);
-           //Serial.println(" sec");
            delay(50);
            }
        }
-       //Serial.print("Last movment at: ");
-       //Serial.print((millis() - last_movement)/1000);
        int read_byte;
        if (Serial.available() > 0) {
         while (Serial.available() > 0) {
@@ -240,7 +219,6 @@ void loop()
             UpdateRGB((char)read_byte);
           }
         }
-        //digitalWrite(5, HIGH);
        }
     delay (1000);        /* Take temperature read every 1 second */
   }
@@ -274,19 +252,11 @@ void Cal_temp (int& Decimal, byte& High, byte& Low, bool& sign)
     High = High ^ B01111111;    /* Complement all of the bits, except the MSB */
     Decimal = Decimal ^ 0xFF;   /* Complement all of the bits */
   }  
-  //Serial.print("\nInput High Decimal: ");
-  //Serial.print(High, DEC);
-  //Serial.print("\nInput High Binary: ");
-  //Serial.print(High, BIN);
   if (state == 'F') {
     remainder = ((High * 9) % 5)*2;
     High = High * 9 / 5 + 32;
     Decimal += remainder * 1000;
   }
-  //Serial.print("\nInput High F Decimal: ");
-  //Serial.print(High, DEC);
-  //Serial.print("\nInput High F Binary: ");
-  //Serial.print(High, BIN);
   if (state == 'F' && Decimal > 10000) {
     High = High + 1; //
     Decimal = Decimal - 10000;
