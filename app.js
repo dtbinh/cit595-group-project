@@ -23,6 +23,8 @@ function checkPayload(e){
         sendStandBy();
     } else if (key === '2'){
         getFromServer();
+    } else if (key === '3'){
+        convertTemp();
     }
 }
 
@@ -33,6 +35,7 @@ function getFromServer(){
     var url = "http://" + ipAddress + ":" + port + "/";
     var method = "GET";
     var async = true;
+    var gotResponse = false;
     Pebble.sendAppMessage({ "0": 'Getting temperature...' });
     
     //   GET REQUEST BELOW
@@ -59,6 +62,7 @@ function getFromServer(){
         console.log("GOT SOMETHING");
         console.log(JSON.stringify(response));
         if (response) {
+            gotResponse = !gotResponse;
             console.log(response.temp);
             //         if (response.temp) {
             var temperature = response.temp;
@@ -73,7 +77,9 @@ function getFromServer(){
             console.log(lastmotion);
             var arduino = response.arduino;
             console.log(arduino);
-            lastAttempt = true;
+            if(lastAttempt === false){
+                   lastAttempt = !lastAttempt;
+            }  
             if(arduino === 'no'){
                 sensorWork = false;
             } else{
@@ -95,8 +101,10 @@ function getFromServer(){
     };
     
     setTimeout(function(){
-               if(req.readyState === 1){
-               lastAttempt = false;
+               if(gotResponse === false){
+                 if(lastAttempt === true){
+                   lastAttempt = !lastAttempt;
+                 }              
                Pebble.sendAppMessage({ "0": 'Server Connection Failed!' });
                req.abort();
                }
@@ -125,10 +133,32 @@ function sendStandBy(){
     var standby = 'STANDBY';
     
     req.open(sendStuff, url, async);
-    console.log('readystate: ' + req.readyState);
-    console.log('status: ' + req.status);
+//     console.log('readystate: ' + req.readyState);
+//     console.log('status: ' + req.status);
     console.log(standby);
     req.send(standby);
+//     console.log('status after: ' + req.status);
+  
+    
+    
+}
+
+function convertTemp(){
+    
+    var req = new XMLHttpRequest();
+    var ipAddress = "158.130.104.68"; // Hard coded IP address
+    var port = "3001"; // Same port specified as argument to server
+    var url = "http://" + ipAddress + ":" + port + "/";
+    //     var method = "GET";
+    var sendStuff = "POST";
+    var async = true;
+    var convert = 'CONVERT';
+    
+    req.open(sendStuff, url, async);
+    console.log('readystate: ' + req.readyState);
+    console.log('status: ' + req.status);
+    console.log(convert);
+    req.send(convert);
     console.log('status after: ' + req.status);
     
     
@@ -156,11 +186,7 @@ function getCity(){
     var temp = 0;
     //   var celsius = 0;
     var sendS = false;
-    
-    //   req.addEventListener("progress", updateProgress);
-    //   req.addEventListener("load", transferComplete);
-    //   req.addEventListener("error", transferFailed);
-    //   req.addEventListener("abort", transferCanceled);
+    var gotResponse = false;
     req.open('GET', 'http://api.openweathermap.org/data/2.5/weather?' +
              'lat=' + 39.98 + '&lon=' + -75.19  + '&cnt=1&appid=' + key, true);
     console.log('readystate: ' + req.readyState);
@@ -171,7 +197,10 @@ function getCity(){
         var response = JSON.parse(req.responseText);
         console.log("returned something!");
         if (response) {
-            lastAttempt = true;
+            gotResponse = !gotResponse;
+            if(lastAttempt === false){
+                   lastAttempt = !lastAttempt;
+            }  
             if (response.name) {
                 msg = response.name + ": " + response.weather[0].description;
                 temp = response.main.temp;
@@ -188,6 +217,13 @@ function getCity(){
         // sends message back to pebble
         Pebble.sendAppMessage({ "0": msg });
     };
+    setTimeout(function(){
+               if(gotResponse === false){
+//                lastAttempt = !lastAttempt;
+               Pebble.sendAppMessage({ "0": 'OpenWeather Connection Failed!' });
+               req.abort();
+               }
+               }, 3000);
     req.send(null);
     //   req.close();
     
@@ -205,6 +241,7 @@ function sendToServer() {
     var sendStuff = "POST";
     var async = true;
     var temp = celsius;
+    var gotResponse = false;
     console.log('C is '+celsius);
     temp = Math.round(temp * 100) / 100;
     console.log('temperature is ' + temp);
@@ -212,18 +249,24 @@ function sendToServer() {
     var tempMsg = 'OUTSIDE TEMP '+ strTemp;
     console.log(tempMsg);
     req.open(sendStuff, url, async);
-    console.log(lastAttempt);
-    console.log(req.status);
+//     console.log(lastAttempt);
+//     console.log(req.status);
+    req.onload = function(e){
+      console.log('msg sent!');
+      gotResponse = !gotResponse;
+    };
     
     req.send(tempMsg);
     //     req.close();
     setTimeout(function(){
-               if(req.readyState === 1){
-               lastAttempt = false;
+               if(gotResponse === false){
+               if(lastAttempt === true){
+                   lastAttempt = !lastAttempt;
+               }  
                Pebble.sendAppMessage({ "0": 'Server Connection Failed!' });
                req.abort();
                }
-               }, 4000);
+               }, 3000);
     
     
     //   }
