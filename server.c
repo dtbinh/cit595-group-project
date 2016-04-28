@@ -22,6 +22,7 @@ int fdusb;
 int last_motion;
 int testing;
 int arduino_ok;
+int loop_kill = 0;
 node* head;
 
 char* yes = "yes";
@@ -32,6 +33,17 @@ void clear_buffer() {
     int i;
     for (i = 0; i < 20; i++) {
         buffer[i] = '\0';
+    }
+}
+
+//take in input, waiting for a q to quit!
+void ask_user_if_quit(void* v) {
+    char input[20]  = "";
+    while (loop_kill == 0) {
+        if (strcmp(input, "q") == 0) {
+            loop_kill = 1;
+        }
+        scanf("%c", input);
     }
 }
 
@@ -64,7 +76,7 @@ void receive_data() {
     int temp_firstnewline, motion_firstnewline, temp_secondnewline, motion_secondnewline, mode_firstnewline;
     char temperature[50], motion[50];
     //loop and read from the arduino
-    while(1) {
+    while(loop_kill == 0) {
         int bytes_read;
         //if bytes are read, add to big buffer, and loop to see if we have a full message
         if((bytes_read = read(fdusb, buffer, 20)) > 0) {
@@ -173,8 +185,13 @@ int start_server(int PORT_NUMBER)
     int sin_size = sizeof(struct sockaddr_in);
     int fd;
     big_buffer[0] = '\0';
-    pthread_t usbreader;
+    pthread_t usbreader, input;
     error = pthread_create(&usbreader, NULL, receive_data, NULL);
+    if (error != 0) {
+        printf("Error in thread creation\n");
+        return -1;
+    }
+    error = pthread_create(&input, NULL, ask_user_if_quit, NULL);
     if (error != 0) {
         printf("Error in thread creation\n");
         return -1;
@@ -182,7 +199,7 @@ int start_server(int PORT_NUMBER)
     //create the variable to store the outside temp
     double outside_temp;
     char user_mode = 'C';
-    while(1) {
+    while(loop_kill == 0) {
         printf("Waiting...\n");
         fd = accept(sock, (struct sockaddr *)&client_addr,(socklen_t *)&sin_size);
         printf("Accepted...\n");
@@ -254,7 +271,7 @@ int start_server(int PORT_NUMBER)
             //if the user requests a conversion of units on the 7-SEG, send the change in unit command to the arduino
             } else if (strstr(request, "CONVERT") != NULL) {
                 bytes_wrote = write(fdusb, "T", 2);
-            //if the user requests a conversion of units on the UI, switch the mode. 
+            //if the user requests a conversion of units on the UI, switch the mode.
             } else if (strstr(request, "CHANGEUI")) {
                 if (user_mode == 'C') {
                     user_mode = 'F';
@@ -309,6 +326,11 @@ int start_server(int PORT_NUMBER)
     }
     //join with the usbreading thread
     error = pthread_join(usbreader, NULL);
+    if (error != 0) {
+        printf("Error in thread join\n");
+        return -1;
+    }
+    error = pthread_join(input, NULL);
     if (error != 0) {
         printf("Error in thread join\n");
         return -1;
