@@ -181,6 +181,7 @@ int start_server(int PORT_NUMBER)
     }
     //create the variable to store the outside temp
     double outside_temp;
+    char user_mode = 'C';
     while(1) {
         printf("Waiting...\n");
         fd = accept(sock, (struct sockaddr *)&client_addr,(socklen_t *)&sin_size);
@@ -227,11 +228,14 @@ int start_server(int PORT_NUMBER)
                 how_is_arduino = no;
             }
             //send a message in the units currently being displayed on the sensor
-            sprintf(reply, "{\n \"temp\": \"%f%c\",\n \"high\": \"%f%c\",\n \"average\": \"%f%c\",\n \"low\": \"%f%c\",\n \"lastmotion\": \"%d\",\n \"arduino\": \"%s\"  }\n", get_latest(head, arduino_mode), arduino_mode, get_high(head, arduino_mode), arduino_mode, get_average(head, arduino_mode), arduino_mode, get_low(head, arduino_mode), arduino_mode, last_motion, how_is_arduino);
+            sprintf(reply, "{\n \"temp\": \"%f%c\",\n \"high\": \"%f%c\",\n \"average\": \"%f%c\",\n \"low\": \"%f%c\",\n \"lastmotion\": \"%d\",\n \"arduino\": \"%s\"  }\n", get_latest(head, user_mode), user_mode, get_high(head, user_mode), user_mode, get_average(head, user_mode), user_mode, get_low(head, user_mode), user_mode, last_motion, how_is_arduino);
             
             // 6. send: send the message over the socket
             // note that the second argument is a char*, and the third is the number of chars
             bytes_received =send(fd, reply, strlen(reply), 0);
+            if (bytes_received == -1) {
+                printf("Error sending");
+            }
             printf("%d\n", bytes_received);
             printf("Server sent message: %s\n", reply);
             
@@ -247,11 +251,18 @@ int start_server(int PORT_NUMBER)
             if (strstr(request, "STANDBY") != NULL) {
                 printf("Found a standby!");
                 bytes_wrote = write(fdusb, "M", 2);
-            //if the user requests a conversion of units, send the change in unit command to the arduino
+            //if the user requests a conversion of units on the 7-SEG, send the change in unit command to the arduino
             } else if (strstr(request, "CONVERT") != NULL) {
                 bytes_wrote = write(fdusb, "T", 2);
+            //if the user requests a conversion of units on the UI, switch the mode. 
+            } else if (strstr(request, "CHANGEUI")) {
+                if (user_mode == 'C') {
+                    user_mode = 'F';
+                } else if (user_mode == 'F') {
+                    user_mode = 'C';
+                }
             //if the user sends a update temperature, parse the temp, set it in the function, and then
-                //set the color of the LED appropriately
+            //set the color of the LED appropriately
             } else if ((start_point = strstr(request, "OUTSIDE TEMP")) != NULL && testing == 0) {
                 char latest_temp[10] = "";
                 for (int i = 0; i < strlen(start_point); i++) {
