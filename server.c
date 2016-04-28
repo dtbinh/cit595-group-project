@@ -43,10 +43,17 @@ void clear_big_buffer() {
     }
 }
 
+//The thread which reads in and populates data from the sensor
 void receive_data() {
     //open the usb port and set the options
     fdusb = open("/dev/cu.usbmodem1421", O_RDWR);
+    //handle a missing sensor
+    if (fdusb == -1) {
+        printf("Unable to connect to sesnsor");
+        exit(-1);
+    }
     int i;
+    //set the options for reading from the usb
     struct termios options; // struct to hold options
     tcgetattr(fdusb, &options);  // associate with this fd
     cfsetispeed(&options, 9600); // set input baud rate
@@ -55,16 +62,13 @@ void receive_data() {
     
     //set up marker and buffers for the readings
     int temp_firstnewline, motion_firstnewline, temp_secondnewline, motion_secondnewline, mode_firstnewline;
-    char temperature[50];
-    char motion[50];
+    char temperature[50], motion[50];
     //loop and read from the arduino
     while(1) {
         int bytes_read;
-        if (fdusb == -1) {
-            printf("Arduino not connected\n");
-        }
         //if bytes are read, add to big buffer, and loop to see if we have a full message
         if((bytes_read = read(fdusb, buffer, 20)) > 0) {
+            //set the initial state for all parsing functions
             arduino_ok = 0;
             buffer[bytes_read] = '\0';
             strcat(big_buffer, buffer);
@@ -73,6 +77,7 @@ void receive_data() {
             motion_firstnewline = -1;
             motion_secondnewline = -1;
             mode_firstnewline = -1;
+            //extract the location of the temperature from the buffer
             for (i = 0; i < strlen(big_buffer); i++) {
                 if (temp_firstnewline == -1 && big_buffer[i] == 'T') {
                     temp_firstnewline = i;
@@ -81,7 +86,7 @@ void receive_data() {
                     break;
                 }
             }
-            
+            //extract the location of the last motion time from the buffer
             for (i = 0; i < strlen(big_buffer); i++) {
                 if (motion_firstnewline == -1 && big_buffer[i] == 'M') {
                     motion_firstnewline = i;
@@ -90,7 +95,7 @@ void receive_data() {
                     break;
                 }
             }
-            
+            //extract the location of the current temperature unit (C/F), abbreviated as S for state, from the buffer
             for (i = 0; i < strlen(big_buffer); i++) {
                 if (mode_firstnewline == -1 && big_buffer[i] == 'S') {
                     arduino_mode = big_buffer[i + 2];
@@ -98,7 +103,7 @@ void receive_data() {
                     break;
                 }
             }
-            //if all fields are available, update the variables and add a node
+            //if all fields are available, update the variables and add a node, and then clear the main buffer
             if (temp_secondnewline > 0 && motion_secondnewline > 0 && mode_firstnewline > 0) {
                 big_buffer[temp_secondnewline] = '\0';
                 temp_firstnewline = temp_firstnewline + 2;
@@ -112,14 +117,15 @@ void receive_data() {
                 clear_big_buffer();
             }
         } else if (bytes_read == -1) {
+            //if we are not reading any bytes, then the arduino is not connected, and we should flag it as such
             arduino_ok = -1;
         }
-        //clear the buffer
+        //clear the small buffer, which has been added to the big one
         clear_buffer();
-        //print_list(head);
-        //printf("-----------\n");
+        //remove any readings that are older than an hour
         head = trim_list(head);
     }
+    close(fdusb);
 }
 
 int start_server(int PORT_NUMBER)
@@ -173,6 +179,7 @@ int start_server(int PORT_NUMBER)
         printf("Error in thread creation\n");
         return -1;
     }
+    //create the variable to store the outside temp
     double outside_temp;
     while(1) {
         printf("Waiting...\n");
@@ -187,6 +194,7 @@ int start_server(int PORT_NUMBER)
         int bytes_received = recv(fd,request,1024,0);
         // null-terminate the string
         request[bytes_received] = '\0';
+        //display the message
         printf("Here comes the message:\n");
         printf("%s\n", request);
         
@@ -207,16 +215,18 @@ int start_server(int PORT_NUMBER)
          
          */
         
-        
+        //Handle get requests by returning a json
         if (request[0] == 'G') {
             char reply[200];
             printf("%c", arduino_mode);
             char* how_is_arduino;
+            //check the state of the arduino to input into the message
             if (arduino_ok == 0) {
                 how_is_arduino = yes;
             } else if (arduino_ok == -1) {
                 how_is_arduino = no;
             }
+            //send a message in the units currently being displayed on the sensor
             sprintf(reply, "{\n \"temp\": \"%f%c\",\n \"high\": \"%f%c\",\n \"average\": \"%f%c\",\n \"low\": \"%f%c\",\n \"lastmotion\": \"%d\",\n \"arduino\": \"%s\"  }\n", get_latest(head, arduino_mode), arduino_mode, get_high(head, arduino_mode), arduino_mode, get_average(head, arduino_mode), arduino_mode, get_low(head, arduino_mode), arduino_mode, last_motion, how_is_arduino);
             
             // 6. send: send the message over the socket
@@ -233,11 +243,15 @@ int start_server(int PORT_NUMBER)
             // note that the second argument is a char*, and the third is the number of chars
             int bytes_wrote = 0;
             char* start_point;
+            //if the user requests a standby, send the change in state command to the arduino
             if (strstr(request, "STANDBY") != NULL) {
                 printf("Found a standby!");
                 bytes_wrote = write(fdusb, "M", 2);
-            } else if (strstr(request, "MODE") != NULL) {
+            //if the user requests a conversion of units, send the change in unit command to the arduino
+            } else if (strstr(request, "CONVERT") != NULL) {
                 bytes_wrote = write(fdusb, "T", 2);
+            //if the user sends a update temperature, parse the temp, set it in the function, and then
+                //set the color of the LED appropriately
             } else if ((start_point = strstr(request, "OUTSIDE TEMP")) != NULL && testing == 0) {
                 char latest_temp[10] = "";
                 for (int i = 0; i < strlen(start_point); i++) {
@@ -259,7 +273,7 @@ int start_server(int PORT_NUMBER)
                     }
                 }
                 printf("Outside temp message!");
-                
+                //same as above, but with user input for testing purposes
             } else if ((start_point = strstr(request, "OUTSIDE TEMP")) != NULL && testing == 1) {
                 char difference[5];
                 double last_read_temp = get_latest(head, 'C');
@@ -282,18 +296,13 @@ int start_server(int PORT_NUMBER)
             close(fd);
         }
     }
-    // this is the message that we'll send back
-    /* it actually looks like this:
-     {
-     "name": "cit595"
-     }
-     */
+    //join with the usbreading thread
     error = pthread_join(usbreader, NULL);
     if (error != 0) {
         printf("Error in thread join\n");
         return -1;
     }
-    
+    //close the socket
     close(sock);
     printf("Server closed connection\n");
     
@@ -311,6 +320,8 @@ int main(int argc, char *argv[])
         printf("\nUsage: server [port_number]\n");
         exit(0);
     }
+    
+    //check whether to start in testing mode
     if (argc == 2) {
         testing = 0;
     } else if (argc == 3) {

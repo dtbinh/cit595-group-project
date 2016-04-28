@@ -33,7 +33,7 @@ node* add_to_list (node* head_node, double temp, char mode) {
 		if (new_node == NULL) {
 			return NULL;
 		}
-		//set the fields
+		//create the nodes, and set the fields
 		new_node->next = NULL;
         if (mode == 'C') {
             new_node->temp_c = temp;
@@ -42,14 +42,17 @@ node* add_to_list (node* head_node, double temp, char mode) {
             new_node->temp_f = temp;
             new_node->temp_c = (temp-32)/1.8;
         }
-		
+		//set the time
 		new_node->addtime = time(NULL);
 		return new_node;
 	} else {
+        //find the send of the list
 		current = head_node;
 		while (current->next) {
 			current = current->next;
 		}
+        
+        //create the node, and set the fields
 		new_node = malloc(sizeof(node));
 		if (new_node == NULL) {
 			return NULL;
@@ -76,8 +79,7 @@ double get_latest(node* head_node, char mode) {
     //set up variables
     node* current = head_node;
     
-    //loop through 10 times, each time finding a new max (that is, the max not already
-    //in the top_ten list)
+    //get the last node's temperature
     current = head_node;
     while (current->next) {
         current = current->next;
@@ -99,11 +101,10 @@ double get_high(node* head_node, char mode) {
 	//set up variables
 	node* current = head_node;
 	double max = 0;
-
-	//loop through 10 times, each time finding a new max (that is, the max not already
-	//in the top_ten list)
+    
+    //find the maximum temperature value among the nodes
 	current = head_node;
-	max = 0;
+	max = -273;
 	while (current) {
         if (mode == 'C') {
             if (max < current->temp_c) {
@@ -129,9 +130,8 @@ double get_low(node* head_node, char mode) {
 	node* current = head_node;
 	char current_top[150];
 	double min = 1000;
-
-	//loop through 10 times, each time finding a new max (that is, the max not already
-	//in the top_ten list)
+    
+    //find the minimum temperature value of all nodes
 	current = head_node;
 	while (current) {
         if (mode == 'C') {
@@ -158,9 +158,9 @@ double get_average(node* head_node, char mode) {
 	char current_top[150];
 	double total = 0;
 	int count = 0;
-
-	//loop through 10 times, each time finding a new max (that is, the max not already
-	//in the top_ten list)
+    
+    
+    //find the average by summing over the nodes
 	current = head_node;
 	while (current) {
         if (mode == 'C') {
@@ -184,6 +184,7 @@ node* trim_list(node* head_node) {
 	if (head_node == NULL) {
 		return NULL;
 	}
+    //change the head to be within an hour of reading
 	while((current_time - head_node->addtime) > 3600) {
 		node* current = head_node->next;
 		free(head_node);
@@ -196,7 +197,7 @@ node* trim_list(node* head_node) {
 }
 
 
-//print the list, without rankings
+//print the list
 void print_list(node* head_node) {
 	node* current = head_node;
 	while (current) {
