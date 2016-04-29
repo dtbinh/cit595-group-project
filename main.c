@@ -16,7 +16,7 @@ void down_click_handler(ClickRecognizerRef recognizer, void *context) {
     app_message_outbox_send();
 }
 
-void double_click_handler(ClickRecognizerRef recognizer, void *context) {
+void double_down_click_handler(ClickRecognizerRef recognizer, void *context) {
     text_layer_set_text(hello_layer, "Convert!");
     DictionaryIterator *iter;
     app_message_outbox_begin(&iter);
@@ -24,6 +24,18 @@ void double_click_handler(ClickRecognizerRef recognizer, void *context) {
     
     // send the message "convert" to the phone, using key #3
     Tuplet value = TupletCString(key, "convert");
+    dict_write_tuplet(iter, &value);
+    app_message_outbox_send();
+}
+
+void double_up_click_handler(ClickRecognizerRef recognizer, void *context) {
+    text_layer_set_text(hello_layer, "Change UI!");
+    DictionaryIterator *iter;
+    app_message_outbox_begin(&iter);
+    int key = 4;
+    
+    // send the message "convert" to the phone, using key #3
+    Tuplet value = TupletCString(key, "change");
     dict_write_tuplet(iter, &value);
     app_message_outbox_send();
 }
@@ -108,11 +120,12 @@ void config_provider(void *context) {
     
     ButtonId id = BUTTON_ID_DOWN;  // The Down button
     window_multi_click_subscribe(id, min_clicks, max_clicks, timeout,
-                                 last_click_only, double_click_handler);
+                                 last_click_only, double_down_click_handler);
     
     window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
     window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
-//       window_multi_click_subscribe(BUTTON_ID_DOWN, )
+    window_multi_click_subscribe(BUTTON_ID_UP, min_clicks, max_clicks, timeout,
+                                 last_click_only, double_up_click_handler);
 }
 
 

@@ -11,6 +11,7 @@ Pebble.addEventListener("appmessage",
                         }
                         );
 
+// This function decides which function to call based on the payload key
 function checkPayload(e){
     for (var key in e.payload) break;
     console.log(JSON.stringify(e));
@@ -20,17 +21,44 @@ function checkPayload(e){
         setTimeout(getCity, 1500);
         setTimeout(sendToServer, 3000);
     } else if(key === '1'){
-        sendStandBy();
+        checkConnect();
+        setTimeout(sendStandBy, 1500);
     } else if (key === '2'){
-        getFromServer();
+        checkConnect();
+        setTimeout(getFromServer, 1500);
     } else if (key === '3'){
-        convertTemp();
+        checkConnect();
+        setTimeout(convertTemp, 1500);
+    } else if (key === '4'){
+        checkConnect();
+        setTimeout(changeDisplay, 1500);
     }
 }
 
+// This function changes the display of temperature between celsius and fahrenheit
+function changeDisplay(){
+    var req = new XMLHttpRequest();
+    var ipAddress = "158.130.110.141"; // Hard coded IP address
+    var port = "3001"; // Same port specified as argument to server
+    var url = "http://" + ipAddress + ":" + port + "/";
+    //     var method = "GET";
+    var sendStuff = "POST";
+    var async = true;
+    var change = 'CHANGEUI';
+    
+    req.open(sendStuff, url, async);
+    console.log('readystate: ' + req.readyState);
+    console.log('status: ' + req.status);
+    console.log(change);
+    req.send(change);
+    console.log('status after: ' + req.status);
+  
+}
+
+// This function gets a JSON from server and displays the info in the watch screen
 function getFromServer(){
     var req = new XMLHttpRequest();
-    var ipAddress = "158.130.104.68"; // Hard coded IP address
+    var ipAddress = "158.130.110.141"; // Hard coded IP address
     var port = "3001"; // Same port specified as argument to server
     var url = "http://" + ipAddress + ":" + port + "/";
     var method = "GET";
@@ -38,33 +66,21 @@ function getFromServer(){
     var gotResponse = false;
     Pebble.sendAppMessage({ "0": 'Getting temperature...' });
     
-    //   GET REQUEST BELOW
-    //     req.onprogress = function () {
-    
-    //       console.log('readystate: ' + req.readyState);
-    //       console.log('status: ' + req.status);
-    // //       var response = JSON.parse(req.responseText);
-    // //       console.log(JSON.stringify(response));
-    
-    //     };
     req.open(method, url, async);
-    console.log('here!');
     console.log('readystate: ' + req.readyState);
     console.log('status: ' + req.status);
     
     req.onload = function(e) {
-        console.log('in onload!');
         console.log('status: ' + req.status);
         // see what came back
-        //       var msg = "no response";
         
         var response = JSON.parse(req.responseText);
         console.log("GOT SOMETHING");
         console.log(JSON.stringify(response));
         if (response) {
             gotResponse = !gotResponse;
+//           JSON is parsed and all values are saved as variables
             console.log(response.temp);
-            //         if (response.temp) {
             var temperature = response.temp;
             console.log(temperature);
             var high = response.high;
@@ -81,23 +97,20 @@ function getFromServer(){
                    lastAttempt = !lastAttempt;
             }  
             if(arduino === 'no'){
-                sensorWork = false;
+              if(sensorWork === true){
+                sensorWork = !sensorWork;
+              }
+                
             } else{
-                sensorWork = true;
+              if(sensorWork === false){
+                sensorWork = !sensorWork;
+              }
+                
             }
-            //           Pebble.sendAppMessage({ "0": 'Temp: '+ temperature + 'Hi: ' + high + 'Low: ' + low + 'Average: ' + average + 'LastMot: ' + lastmotion });
             Pebble.sendAppMessage({ "0": 'Temp: '+ temperature + '\nHi: ' + high + '\nLow: ' + low  + '\nAverage: ' + average + '\nLast Motion: ' + lastmotion + " sec"});
             
-            //         }
-            // sends message back to pebble
-            
         }
-        //       else{
-        //           Pebble.sendAppMessage({ "0": 'uh-oh...' });
-        //           lastAttempt = false;
-        //           Pebble.sendAppMessage({ "0": 'phone connection lost!' });
-        //         }
-        
+
     };
     
     setTimeout(function(){
@@ -110,10 +123,10 @@ function getFromServer(){
                }
                }, 3000);
     req.send(null);
-    //     req.close();
     
 }
 
+// This function sends a standby message to the ardunino is it's running, a resume if its in standby
 function sendStandBy(){
     
     if(standbymode !== true){
@@ -124,7 +137,7 @@ function sendStandBy(){
         standbymode = false;
     }
     var req = new XMLHttpRequest();
-    var ipAddress = "158.130.104.68"; // Hard coded IP address
+    var ipAddress = "158.130.110.141"; // Hard coded IP address
     var port = "3001"; // Same port specified as argument to server
     var url = "http://" + ipAddress + ":" + port + "/";
     //     var method = "GET";
@@ -133,20 +146,18 @@ function sendStandBy(){
     var standby = 'STANDBY';
     
     req.open(sendStuff, url, async);
-//     console.log('readystate: ' + req.readyState);
-//     console.log('status: ' + req.status);
     console.log(standby);
     req.send(standby);
-//     console.log('status after: ' + req.status);
   
     
     
 }
 
+// This function sends a convert request to the server, changing between fahrenheit and celsius
 function convertTemp(){
     
     var req = new XMLHttpRequest();
-    var ipAddress = "158.130.104.68"; // Hard coded IP address
+    var ipAddress = "158.130.110.141"; // Hard coded IP address
     var port = "3001"; // Same port specified as argument to server
     var url = "http://" + ipAddress + ":" + port + "/";
     //     var method = "GET";
@@ -164,6 +175,7 @@ function convertTemp(){
     
 }
 
+// This function checks whether the last connect attempt had any issues
 function checkConnect(){
     
     if(lastAttempt === false){
@@ -179,6 +191,7 @@ function checkConnect(){
     
 }
 
+// This function uses the OpenWeather API to get the current weather at Philly
 function getCity(){
     var key = '863fad9850866cd53fbf3c264f6d4631';
     var req = new XMLHttpRequest();
@@ -231,11 +244,11 @@ function getCity(){
     
 }
 
-
+// This function sends the outside temperature to the server for it to make comparison
 function sendToServer() {
     
     var req = new XMLHttpRequest();
-    var ipAddress = "158.130.104.68"; // Hard coded IP address
+    var ipAddress = "158.130.110.141"; // Hard coded IP address
     var port = "3001"; // Same port specified as argument to server
     var url = "http://" + ipAddress + ":" + port + "/";
     var sendStuff = "POST";
@@ -249,15 +262,12 @@ function sendToServer() {
     var tempMsg = 'OUTSIDE TEMP '+ strTemp;
     console.log(tempMsg);
     req.open(sendStuff, url, async);
-//     console.log(lastAttempt);
-//     console.log(req.status);
     req.onload = function(e){
       console.log('msg sent!');
       gotResponse = !gotResponse;
     };
     
     req.send(tempMsg);
-    //     req.close();
     setTimeout(function(){
                if(gotResponse === false){
                if(lastAttempt === true){
@@ -269,5 +279,4 @@ function sendToServer() {
                }, 3000);
     
     
-    //   }
 }
